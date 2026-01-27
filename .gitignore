@@ -25,9 +25,15 @@ Thumbs.db
 # Logs
 *.log
 
-# Credentials
-*.json
-!package.json
+# Credentials (Google OAuth)
+gmail_credentials.json
+gmail_token.json
 credentials/
 token.pickle
 token.json
+
+# Uploaded files
+uploads/
+
+# Cursor
+.cursor/projects/
