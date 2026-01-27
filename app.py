@@ -449,25 +449,48 @@ def create_submission():
     # Check if already submitted
     existing = supabase.table('submissions').select('*').eq('event_id', event_id).eq('team_member_id', member_id).execute()
     
+    # Build submission data
     submission_data = {
         'event_id': event_id,
         'team_member_id': member_id,
         'message': message if message else None,
-        'file_url': file_url,
-        'photo_urls': json.dumps(photo_urls) if photo_urls else None
+        'file_url': file_url
     }
     
-    if existing.data:
-        # Update existing submission
-        # Keep old file_url if no new one uploaded
-        if not file_url and existing.data[0].get('file_url'):
-            submission_data['file_url'] = existing.data[0]['file_url']
-        supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
-    else:
-        # Create new submission
-        supabase.table('submissions').insert(submission_data).execute()
+    # Add photo_urls if there are any photos
+    if photo_urls:
+        submission_data['photo_urls'] = json.dumps(photo_urls)
     
-    return jsonify({'success': True})
+    try:
+        if existing.data:
+            # Update existing submission
+            # Keep old file_url if no new one uploaded
+            if not file_url and existing.data[0].get('file_url'):
+                submission_data['file_url'] = existing.data[0]['file_url']
+            supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
+        else:
+            # Create new submission
+            supabase.table('submissions').insert(submission_data).execute()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        error_msg = str(e)
+        # Check if error is about missing photo_urls column
+        if 'photo_urls' in error_msg:
+            # Try again without photo_urls
+            del submission_data['photo_urls']
+            try:
+                if existing.data:
+                    supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
+                else:
+                    supabase.table('submissions').insert(submission_data).execute()
+                return jsonify({
+                    'success': True, 
+                    'warning': 'Photos not saved - please add photo_urls column to submissions table in Supabase'
+                })
+            except Exception as e2:
+                return jsonify({'success': False, 'error': str(e2)}), 500
+        return jsonify({'success': False, 'error': error_msg}), 500
 
 
 @app.route('/uploads/<filename>')
