@@ -58,13 +58,20 @@ Once configured, emails are sent automatically when you:
 The app uses HTML email templates with Pandata branding:
 
 ### Invitation Email
-- Subject: `Farewell Card for {Name} 🎉`
-- Contains: Custom message, personalized submit link, deadline
-- Styled with Pandata colors
+- **Subject:** `Farewell Card for {Name} 🎉`
+- **Content:**
+  - Greeting with recipient's first name
+  - Announcement of honoree's last day with date
+  - Call-to-action to contribute via the farewell app
+  - Personalized submit link (no login required)
+  - Organizer name in footer
 
 ### Reminder Email
-- Subject: `⏰ Reminder: Farewell Card for {Name}`
-- Contains: Friendly nudge, submit link, deadline
+- **Subject:** `Reminder: Farewell Card for {Name} ⏰`
+- **Content:**
+  - Friendly reminder about the upcoming last day
+  - Note that contribution hasn't been received yet
+  - Same personalized submit link
 - Only sent to team members who haven't submitted
 
 ## Troubleshooting

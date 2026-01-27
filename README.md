@@ -15,7 +15,7 @@ A web app for organizing farewell cards at Pandata. Collect messages from the te
 - ✅ **Employee List** - All Pandata employees pre-loaded, auto-excludes honoree
 - ✅ **Personalized Links** - Each team member gets their own link (no login required)
 - ✅ **Gmail Integration** - Send invitations and reminders directly from the app
-- ✅ **Google Drive** - Auto-creates folders in format `YYMM Vorname` (e.g., "2601 Julian")
+- ✅ **Google Drive** - Auto-creates folders in format `YYMM FirstName` (e.g., "2601 Julian")
 - ✅ **File Uploads** - Team members can upload PDFs, images, or type messages
 - ✅ **Pandata Branding** - Corporate design (colors, fonts) applied
 
@@ -44,14 +44,17 @@ Open http://localhost:5001
 
 ### 4. Configure Email (recommended)
 
-Add your Resend API key to `.env`:
+Add your SMTP credentials to `.env`:
 
 ```bash
-RESEND_API_KEY=re_xxxxxxxxxxxx
-EMAIL_FROM=Farewellify <farewell@pandata.de>
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+EMAIL_FROM=no-reply@pandata.de
 ```
 
-Get your free API key at [resend.com](https://resend.com)
+For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular password).
 
 ## Documentation
 
@@ -60,9 +63,10 @@ Get your free API key at [resend.com](https://resend.com)
 | [Architecture](docs/ARCHITECTURE.md) | System overview, components, data flow |
 | [Database](docs/DATABASE.md) | Tables, schemas, Supabase setup |
 | [API Reference](docs/API.md) | All REST endpoints |
-| [Email Setup](docs/EMAIL_SETUP.md) | Resend email configuration |
+| [Email Setup](docs/EMAIL_SETUP.md) | SMTP email configuration |
 | [Google Drive](docs/GOOGLE_INTEGRATION.md) | Drive OAuth for auto-folders (optional) |
 | [Development](docs/DEVELOPMENT.md) | Local development guide |
+| [Changelog](docs/CHANGELOG.md) | Version history and changes |
 
 ## Project Structure
 
@@ -77,6 +81,8 @@ farewellify/
 │   ├── index.html         # Create event form
 │   ├── admin.html         # Admin dashboard
 │   └── submit.html        # Team member submission form
+├── assets/
+│   └── farewellify-logo.png  # App logo (displayed on all pages)
 ├── docs/
 │   ├── ARCHITECTURE.md    # System architecture
 │   ├── DATABASE.md        # Database schema
@@ -92,7 +98,7 @@ farewellify/
 - **Backend**: Python Flask
 - **Database**: Supabase (PostgreSQL)
 - **Frontend**: HTML + Tailwind CSS
-- **Email**: Resend (simple API, no OAuth needed!)
+- **Email**: SMTP (Gmail or any SMTP provider)
 - **Storage**: Google Drive API (optional) + local uploads
 
 ## Key Concepts
@@ -115,4 +121,4 @@ This ensures the farewell card stays a surprise.
 ### Auto-Folders
 When an event is created with Google Drive connected, a folder is automatically created:
 - **Location**: Pandata farewell cards folder
-- **Format**: `YYMM Vorname` (e.g., "2601 Julian" for January 2026)
+- **Format**: `YYMM FirstName` (e.g., "2601 Julian" for January 2026)

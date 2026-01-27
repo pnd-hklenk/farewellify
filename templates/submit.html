@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Your Message - Pandata Farewellify</title>
+    <link rel="icon" type="image/png" href="/assets/farewellify-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -37,24 +38,23 @@
 <body class="min-h-screen bg-pandata-gray-light font-sans">
     <div class="container mx-auto px-4 py-12 max-w-xl">
         <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-pandata-red rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <i class="fas fa-heart text-3xl text-white"></i>
+            <div class="mb-4">
+                <img src="/assets/farewellify-logo.png" alt="Farewellify" class="h-24 mx-auto">
             </div>
             <h1 class="text-2xl font-light text-pandata-charcoal mb-2">Farewell Message for</h1>
             <h2 id="honoreeName" class="text-3xl font-semibold text-pandata-red">Loading...</h2>
         </div>
 
         <div class="bg-white rounded-lg shadow-lg p-8 border-t-4 border-pandata-red">
-            <div id="eventMessage" class="hidden mb-6 p-4 bg-pandata-gray-light rounded-lg text-pandata-charcoal italic">
-            </div>
-
             <form id="submitForm" class="space-y-6">
                 <!-- Personal greeting (shown when we know who they are) -->
-                <div id="personalGreeting" class="hidden text-center py-3 bg-pandata-coral/10 rounded-lg border border-pandata-coral/20">
-                    <p class="text-pandata-charcoal">
+                <div id="personalGreeting" class="hidden text-center py-4 bg-pandata-coral/10 rounded-lg border border-pandata-coral/20">
+                    <p class="text-pandata-charcoal text-lg">
                         Hi <span id="greetingName" class="font-semibold text-pandata-red"></span>! 👋
                     </p>
-                    <p class="text-sm text-pandata-gray-dark mt-1">Ready to write your message?</p>
+                    <p class="text-sm text-pandata-gray-dark mt-2">
+                        Please submit your message for <span id="honoreeInGreeting" class="font-medium"></span>'s farewell card
+                    </p>
                 </div>
                 
                 <!-- Email/Name fields (collapsed when pre-filled) -->
@@ -151,7 +151,7 @@
                             <i class="fas fa-upload text-pandata-red mr-1"></i>
                             Upload a photo or handwritten note
                         </label>
-                        <p class="text-xs text-gray-500 mb-3">Accepted formats: PDF, JPG, PNG (max 10MB)</p>
+                        <p class="text-xs text-gray-500 mb-3">Accepted formats: PDF, JPG, PNG (max 50MB)</p>
                         
                         <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-pandata-red transition-colors cursor-pointer">
                             <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
@@ -269,17 +269,14 @@
                     document.getElementById('nameInput').readOnly = true;
                     document.getElementById('nameInput').classList.add('bg-gray-50', 'text-pandata-gray-dark');
                     
-                    // Show personal greeting
-                    document.getElementById('greetingName').textContent = event.team_member_name.split(' ')[0]; // First name
+                    // Show personal greeting with first name
+                    const firstName = event.team_member_name.split(' ')[0];
+                    document.getElementById('greetingName').textContent = firstName;
+                    document.getElementById('honoreeInGreeting').textContent = honoreeName;
                     document.getElementById('personalGreeting').classList.remove('hidden');
                     
                     // Collapse identity fields since we know who they are
                     document.getElementById('identityFields').classList.add('hidden');
-                }
-                
-                if (event.message) {
-                    document.getElementById('eventMessage').textContent = event.message;
-                    document.getElementById('eventMessage').classList.remove('hidden');
                 }
                 
                 if (event.google_drive_folder_url) {
@@ -443,12 +440,20 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
             
-            const formData = new FormData(e.target);
+            const formData = new FormData();
             formData.append('eventId', eventId);
+            formData.append('email', document.querySelector('[name="email"]').value);
+            formData.append('name', document.querySelector('[name="name"]').value);
+            formData.append('message', messageInput.value);
             
-            // If handwritten note uploaded, mark it as the message file
+            // Add the handwritten note as 'messageFile' if uploaded
             if (hasMessageFile && messageFileInput.files[0]) {
-                formData.append('file', messageFileInput.files[0]);
+                formData.append('messageFile', messageFileInput.files[0]);
+            }
+            
+            // Add the photo as 'file' if uploaded
+            if (hasPhoto && fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
             }
 
             try {

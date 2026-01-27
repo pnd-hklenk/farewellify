@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Farewellify - Pandata</title>
+    <link rel="icon" type="image/png" href="/assets/farewellify-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -38,8 +39,8 @@
 <body class="min-h-screen bg-pandata-gray-light font-sans">
     <div class="container mx-auto px-4 py-12 max-w-2xl">
         <div class="text-center mb-10">
-            <div class="mb-4">
-                <span class="text-pandata-red text-5xl font-semibold">Farewell</span><span class="text-pandata-charcoal text-5xl font-light">ify</span>
+            <div class="mb-6">
+                <img src="/assets/farewellify-logo.png" alt="Farewellify" class="h-32 mx-auto">
             </div>
             <p class="text-pandata-gray-dark font-mono text-sm uppercase tracking-wider">Pandata Farewell Cards</p>
         </div>
@@ -112,9 +113,9 @@
                         <div class="p-3 bg-pandata-gray-light rounded-lg">
                             <p class="text-sm text-pandata-charcoal">
                                 <i class="fab fa-google-drive text-pandata-red mr-2"></i>
-                                <strong>Google Drive:</strong> Ein Ordner wird automatisch erstellt
+                                <strong>Google Drive:</strong> A folder will be automatically created
                             </p>
-                            <p class="text-xs text-pandata-gray mt-1">Format: YYMM Vorname (z.B. "2601 Julian")</p>
+                            <p class="text-xs text-pandata-gray mt-1">Format: YYMM FirstName (e.g. "2601 Julian")</p>
                         </div>
                     </div>
                 </div>
@@ -255,17 +256,8 @@
         function updateDefaultMessage(name) {
             const messageField = document.querySelector('[name="message"]');
             if (!messageField.dataset.userEdited) {
-                messageField.value = `Hi Pandatas,
-
-We will be celebrating ${name || '[Name]'}'s farewell and therefore need your help!
-
-For the farewell card, please send a few words you'd like to share and any photos you have.
-
-You can upload handwritten notes or type in a text of your choice.
-
-Please submit your entry via this link: [LINK WIRD AUTOMATISCH EINGEFÜGT]
-
-Thanks a lot!`;
+                // This message is only used internally - the actual email will use the personalized template
+                messageField.value = `We're collecting messages for ${name || '[Name]'}'s farewell card! Please share a few words and any photos you have. You can upload handwritten notes or type a message.`;
             }
         }
 

@@ -182,7 +182,7 @@ def get_drive_service():
 def create_farewell_folder(honoree_first_name: str, event_date=None) -> dict:
     """
     Create a folder for the farewell card in Google Drive.
-    Format: YYMM Vorname (e.g., "2601 Julian" for January 2026, Julian)
+    Format: YYMM FirstName (e.g., "2601 Julian" for January 2026, Julian)
     
     Returns dict with folder_id and folder_url, or None if failed.
     """
@@ -194,7 +194,7 @@ def create_farewell_folder(honoree_first_name: str, event_date=None) -> dict:
         return None
     
     try:
-        # Generate folder name: YYMM Vorname
+        # Generate folder name: YYMM FirstName
         if event_date:
             date = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
         else:

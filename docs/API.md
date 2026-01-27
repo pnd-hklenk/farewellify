@@ -102,9 +102,12 @@ Content-Type: multipart/form-data
 **Form Fields:**
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `eventId` | string | Yes | Event UUID |
 | `email` | string | Yes | Team member's email |
-| `message` | string | No | Farewell message |
-| `file` | file | No | PDF, JPG, or PNG (max 10MB) |
+| `name` | string | No | Team member's name |
+| `message` | string | No | Farewell message (typed) |
+| `messageFile` | file | No | Handwritten note - PDF, JPG, or PNG (max 50MB) |
+| `file` | file | No | Photo - PDF, JPG, or PNG (max 50MB) |
 
 **Response:**
 ```json
@@ -317,6 +320,18 @@ GET /uploads/{filename}
 ```
 
 Serves files from the `uploads/` directory.
+
+### Get Static Asset
+```http
+GET /assets/{filename}
+```
+
+Serves static assets (logo, icons) from the `assets/` directory.
+
+**Example:**
+```
+GET /assets/farewellify-logo.png
+```
 
 ---
 

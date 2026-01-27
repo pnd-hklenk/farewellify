@@ -21,21 +21,20 @@
 │  - POST /api/events/{id}/submissions                                 │
 │  - GET  /api/admin/{code}        Get event data for admin            │
 │  - GET  /api/employees           Get active employees                │
-│  - GET  /api/gmail/status        Check Google connection             │
+│  - GET  /api/email/status        Check email + drive status          │
 └────────┬────────────────────────────────────┬───────────────────────┘
          │                                    │
          ▼                                    ▼
 ┌─────────────────────┐          ┌────────────────────────────────────┐
-│      SUPABASE       │          │    GOOGLE APIS (gmail_auth.py)     │
+│      SUPABASE       │          │         EXTERNAL SERVICES          │
 │    (PostgreSQL)     │          ├────────────────────────────────────┤
-├─────────────────────┤          │  - Gmail API (send emails)         │
-│ - farewell_events   │          │  - Drive API (create folders)      │
-│ - team_members      │          │                                    │
-│ - submissions       │          │  OAuth 2.0 flow:                   │
-│ - employees         │          │  1. /api/gmail/connect             │
-└─────────────────────┘          │  2. Google consent screen          │
-                                 │  3. /api/gmail/callback            │
-                                 │  4. Token stored locally           │
+├─────────────────────┤          │  RESEND (resend.com)               │
+│ - farewell_events   │          │  - Send transactional emails       │
+│ - team_members      │          │  - No OAuth required (API key)     │
+│ - submissions       │          │                                    │
+│ - employees         │          │  GOOGLE DRIVE (optional)           │
+└─────────────────────┘          │  - Create folders via OAuth        │
+                                 │  - Token stored in gmail_token.json│
                                  └────────────────────────────────────┘
 ```
 
@@ -62,9 +61,9 @@ Admin clicks "Send Invitations" → POST /api/events/{id}/send-invitations
                                         ├─→ Get all team members
                                         │
                                         └─→ For each member:
-                                              ├─→ Generate personalized link
-                                              ├─→ Replace [LINK] placeholder
-                                              ├─→ Send email via Gmail API
+                                              ├─→ Generate personalized link (?email=xxx)
+                                              ├─→ Build HTML email with first name greeting
+                                              ├─→ Send via Resend API
                                               └─→ Update invited_at timestamp
 ```
 
@@ -99,20 +98,30 @@ The main entry point. Handles:
 | `get_admin_data()` | Return all event data for admin dashboard |
 | `get_employees()` | Return active employees (with exclusion filter) |
 | `serve_upload()` | Serve uploaded files |
-| Gmail routes | OAuth flow for Google connection |
+| `send_email()` | Send email via Resend API |
 
-### gmail_auth.py (Google Integration)
+### gmail_auth.py (Google Drive Integration)
 
-Handles OAuth 2.0 for Gmail and Drive:
+Handles OAuth 2.0 for Google Drive (optional, for auto-folder creation):
 
 | Function | Purpose |
 |----------|---------|
 | `start_auth_flow()` | Begin OAuth, return Google consent URL |
 | `complete_auth_flow()` | Handle callback, save tokens |
-| `send_email_via_gmail()` | Send HTML email via Gmail API |
-| `create_farewell_folder()` | Create Drive folder with `YYMM Name` format |
-| `is_gmail_connected()` | Check if tokens are valid |
-| `disconnect_gmail()` | Remove stored tokens |
+| `create_farewell_folder()` | Create Drive folder with `YYMM Vorname` format |
+| `is_drive_connected()` | Check if Drive tokens are valid |
+| `get_drive_service()` | Get authenticated Drive API client |
+
+### Email Service (Resend)
+
+Emails are sent via [Resend](https://resend.com) API:
+
+| Feature | Implementation |
+|---------|----------------|
+| API Key | `RESEND_API_KEY` environment variable |
+| From address | `EMAIL_FROM` environment variable |
+| Personalization | First name greeting ("Hi Adam,") |
+| No login required | Personalized links with `?email=xxx` |
 
 ### Templates
 
@@ -125,6 +134,15 @@ Handles OAuth 2.0 for Gmail and Drive:
 All templates use **Pandata corporate design**:
 - Colors: `#fa4f4f` (red), `#434343` (charcoal), `#eeeeee` (gray)
 - Font: Open Sans
+- Logo: Farewellify logo displayed on all pages
+
+### Static Assets
+
+| File | Purpose |
+|------|---------|
+| `assets/farewellify-logo.png` | Main logo (displayed on all pages, used as favicon) |
+
+Assets are served via the `/assets/<filename>` route.
 
 ## Security Considerations
 
@@ -152,8 +170,8 @@ The honoree must NEVER receive any communication:
 
 ### Local Uploads
 - Directory: `uploads/`
-- Files renamed to: `{uuid}_{original_name}`
-- Max size: 10MB
+- Files renamed to: `{event_id}_{uuid}.{ext}` or `{event_id}_msg_{uuid}.{ext}` for handwritten notes
+- Max size: 50MB
 - Allowed types: PDF, JPG, PNG
 
 ### Google Drive

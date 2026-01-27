@@ -14,6 +14,7 @@ from flask_cors import CORS
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 
 # Google Drive for folder creation (optional)
 try:
@@ -31,11 +32,20 @@ CORS(app)
 # File upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+# Error handler for file too large
+@app.errorhandler(413)
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(e):
+    return jsonify({
+        'success': False,
+        'error': f'File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)}MB.'
+    }), 413
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -183,48 +193,50 @@ def send_invitations(event_id):
     submit_url = f"{base_url}/submit/{event_id}"
     
     sent_count = 0
+    honoree_first_name = event_data['honoree_name'].split()[0]
+    
+    # Format deadline as "Thursday, 29.01."
+    deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
+    weekdays_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
+    
     for member in members.data:
         # Create personalized link for this team member
         personal_link = f"{submit_url}?email={member['email']}"
+        member_first_name = member['name'].split()[0]
         
-        # Replace placeholder in message with personal link
-        message_with_link = event_data.get('message', '')
-        if message_with_link:
-            message_with_link = message_with_link.replace('[LINK WIRD AUTOMATISCH EINGEFÜGT]', personal_link)
-            message_with_link = message_with_link.replace('\n', '<br>')
-        
-        subject = f"Farewell Card for {event_data['honoree_name']} 🎉"
+        subject = f"Farewell Card for {honoree_first_name} 🎉"
         html_content = f"""
         <html>
-        <body style="font-family: 'Open Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #eeeeee;">
-            <div style="background-color: white; padding: 30px; border-radius: 8px; border-top: 4px solid #fa4f4f;">
-                <h2 style="color: #434343; margin-top: 0;">Farewell Card for {event_data['honoree_name']}</h2>
-                <p style="color: #434343;">Hi {member['name']},</p>
-                
-                <div style="background-color: #eeeeee; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #fa4f4f;">
-                    <p style="color: #434343; margin: 0; white-space: pre-line;">{message_with_link}</p>
-                </div>
-                
-                <p style="text-align: center; margin: 30px 0;">
-                    <a href="{personal_link}" 
-                       style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
-                        Submit Your Message
-                    </a>
-                </p>
-                
-                <p style="color: #595959;"><strong>Deadline:</strong> {event_data['deadline'][:10]}</p>
-                
-                {f'''<p style="color: #595959;">
-                    <i>📁</i> You can also upload files directly to the 
-                    <a href="{event_data['google_drive_folder_url']}" style="color: #fa4f4f;">Google Drive Folder</a>
-                </p>''' if event_data.get('google_drive_folder_url') else ""}
-                
-                <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;">
-                <p style="color: #999999; font-size: 12px; margin-bottom: 0;">
-                    This is a personalized link for you. No login required!<br>
-                    Organized by {event_data['organizer_name']}
-                </p>
-            </div>
+        <body style="font-family: 'Open Sans', Arial, sans-serif; margin: 0; padding: 20px; background-color: #eeeeee;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: white; border-radius: 8px; border-top: 4px solid #fa4f4f;">
+                            <tr>
+                                <td align="left" style="padding: 30px;">
+                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">Farewell Card for {honoree_first_name}</h2>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">It is <strong>{honoree_first_name}'s</strong> last day on <strong>{formatted_deadline}</strong>, and so we would like you to contribute to their farewell card.</p>
+                                    <p style="color: #434343; margin: 0 0 25px 0;">Please upload or draft your message via our new farewell app:</p>
+                                    <table cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td align="left" style="padding: 10px 0 25px 0;">
+                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Add Your Message</a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;">
+                                    <p style="color: #999999; font-size: 12px; margin: 0;">
+                                        This is your personalized link – no login required!<br>
+                                        Organized by {event_data['organizer_name'].split()[0]}
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """
@@ -265,38 +277,48 @@ def send_reminders(event_id):
     submit_url = f"{base_url}/submit/{event_id}"
     
     sent_count = 0
+    honoree_first_name = event_data['honoree_name'].split()[0]
+    
+    # Format deadline as "Thursday, 29.01."
+    deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
+    weekdays_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
+    
     for member in pending_members:
         personal_link = f"{submit_url}?email={member['email']}"
+        member_first_name = member['name'].split()[0]
         
-        subject = f"Reminder: Farewell Card for {event_data['honoree_name']} ⏰"
+        subject = f"Reminder: Farewell Card for {honoree_first_name} ⏰"
         html_content = f"""
         <html>
-        <body style="font-family: 'Open Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #eeeeee;">
-            <div style="background-color: white; padding: 30px; border-radius: 8px; border-top: 4px solid #434343;">
-                <h2 style="color: #434343; margin-top: 0;">⏰ Friendly Reminder!</h2>
-                <p style="color: #434343;">Hi {member['name']},</p>
-                <p style="color: #434343;">Just a friendly reminder that we're still collecting messages for <strong>{event_data['honoree_name']}'s</strong> farewell card.</p>
-                <p style="color: #434343;">We haven't received your contribution yet - it would mean a lot!</p>
-                
-                <p style="text-align: center; margin: 30px 0;">
-                    <a href="{personal_link}" 
-                       style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
-                        Add Your Message Now
-                    </a>
-                </p>
-                
-                <p style="color: #d14343;"><strong>⚠️ Deadline:</strong> {event_data['deadline'][:10]}</p>
-                
-                {f'''<p style="color: #595959;">
-                    Or upload files directly to the 
-                    <a href="{event_data['google_drive_folder_url']}" style="color: #fa4f4f;">Google Drive Folder</a>
-                </p>''' if event_data.get('google_drive_folder_url') else ""}
-                
-                <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;">
-                <p style="color: #999999; font-size: 12px; margin-bottom: 0;">
-                    This is your personalized link - no login required!
-                </p>
-            </div>
+        <body style="font-family: 'Open Sans', Arial, sans-serif; margin: 0; padding: 20px; background-color: #eeeeee;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: white; border-radius: 8px; border-top: 4px solid #434343;">
+                            <tr>
+                                <td align="left" style="padding: 30px;">
+                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">⏰ Friendly Reminder!</h2>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">Just a friendly reminder: <strong>{honoree_first_name}'s</strong> last day is on <strong>{formatted_deadline}</strong>, and we haven't received your contribution to their farewell card yet.</p>
+                                    <p style="color: #434343; margin: 0 0 25px 0;">Please upload or draft your message via our farewell app:</p>
+                                    <table cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td align="left" style="padding: 10px 0 25px 0;">
+                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Add Your Message Now</a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;">
+                                    <p style="color: #999999; font-size: 12px; margin: 0;">
+                                        This is your personalized link – no login required!
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """
@@ -356,17 +378,34 @@ def create_submission():
     if not event_id or not email:
         return jsonify({'error': 'Missing required fields'}), 400
     
-    # Handle file upload
+    # Handle file uploads (can have messageFile and/or file)
     file_url = None
+    message_file_url = None
+    
+    # Handle handwritten note (messageFile)
+    if 'messageFile' in request.files:
+        msg_file = request.files['messageFile']
+        if msg_file and msg_file.filename and allowed_file(msg_file.filename):
+            ext = msg_file.filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{event_id}_msg_{uuid.uuid4().hex[:8]}.{ext}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            msg_file.save(filepath)
+            message_file_url = f"/uploads/{unique_filename}"
+    
+    # Handle photo file
     if 'file' in request.files:
         file = request.files['file']
         if file and file.filename and allowed_file(file.filename):
-            # Create unique filename
             ext = file.filename.rsplit('.', 1)[1].lower()
             unique_filename = f"{event_id}_{uuid.uuid4().hex[:8]}.{ext}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             file.save(filepath)
             file_url = f"/uploads/{unique_filename}"
+    
+    # Use messageFile as primary file_url if no photo but has message file
+    if not file_url and message_file_url:
+        file_url = message_file_url
+        message_file_url = None
     
     # Find the team member
     member = supabase.table('team_members').select('*').eq('event_id', event_id).eq('email', email).limit(1).execute()
@@ -409,6 +448,13 @@ def create_submission():
 def serve_upload(filename):
     """Serve uploaded files"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/assets/<filename>')
+def serve_assets(filename):
+    """Serve static assets (logo, icons, etc.)"""
+    assets_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+    return send_from_directory(assets_folder, filename)
 
 
 @app.route('/api/employees')

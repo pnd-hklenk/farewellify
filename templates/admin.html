@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Pandata Farewellify</title>
+    <link rel="icon" type="image/png" href="/assets/farewellify-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -36,6 +37,11 @@
 </head>
 <body class="min-h-screen bg-pandata-gray-light font-sans">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Logo -->
+        <div class="text-center mb-6">
+            <img src="/assets/farewellify-logo.png" alt="Farewellify" class="h-24 mx-auto">
+        </div>
+        
         <!-- Header -->
         <div class="bg-pandata-charcoal rounded-lg p-6 mb-8 text-white shadow-lg border-l-4 border-pandata-red">
             <div class="flex items-center justify-between flex-wrap gap-4">
@@ -280,22 +286,28 @@
                 messagesSection.innerHTML = '<p class="text-pandata-gray text-center">No messages yet...</p>';
             } else {
                 messagesSection.innerHTML = submittedMembers.map(member => `
-                    <div class="p-4 bg-pandata-gray-light rounded-lg border-l-4 border-pandata-red">
-                        ${member.message ? `<p class="text-pandata-charcoal">"${member.message}"</p>` : ''}
+                    <div class="p-4 bg-pandata-gray-light rounded-lg border-l-4 border-pandata-red flex items-start gap-4">
                         ${member.fileUrl ? `
-                            <div class="mt-2 flex items-center gap-3">
-                                ${member.fileUrl.match(/\.(jpg|jpeg|png)$/i) 
-                                    ? `<img src="${member.fileUrl}" alt="Upload from ${member.name}" class="max-w-xs rounded-lg shadow-sm">`
-                                    : `<a href="${member.fileUrl}" target="_blank" class="inline-flex items-center text-pandata-red hover:underline">
-                                        <i class="fas fa-file-pdf mr-2"></i>View file
+                            <div class="flex-shrink-0">
+                                ${member.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) 
+                                    ? `<a href="${member.fileUrl}" target="_blank" title="Click to view full size">
+                                        <img src="${member.fileUrl}" alt="Upload from ${member.name}" class="w-16 h-16 object-cover rounded shadow-sm hover:opacity-80 transition-opacity cursor-pointer">
+                                       </a>`
+                                    : `<a href="${member.fileUrl}" target="_blank" class="w-16 h-16 flex items-center justify-center bg-pandata-charcoal/10 rounded text-pandata-charcoal hover:bg-pandata-charcoal/20 transition-colors">
+                                        <i class="fas fa-file-pdf text-2xl"></i>
                                        </a>`
                                 }
-                                <a href="${member.fileUrl}" download class="inline-flex items-center px-3 py-1 bg-pandata-charcoal text-white text-sm rounded hover:bg-black transition-colors">
-                                    <i class="fas fa-download mr-1"></i>Download
-                                </a>
                             </div>
                         ` : ''}
-                        <p class="text-sm text-pandata-gray mt-2">— ${member.name}</p>
+                        <div class="flex-grow min-w-0">
+                            <p class="text-sm font-medium text-pandata-charcoal">${member.name}</p>
+                            ${member.message ? `<p class="text-pandata-gray-dark text-sm mt-1 line-clamp-2">"${member.message}"</p>` : '<p class="text-pandata-gray text-sm italic mt-1">File uploaded</p>'}
+                            ${member.fileUrl ? `
+                                <a href="${member.fileUrl}" download class="inline-flex items-center text-xs text-pandata-red hover:underline mt-2">
+                                    <i class="fas fa-download mr-1"></i>Download
+                                </a>
+                            ` : ''}
+                        </div>
                     </div>
                 `).join('');
             }

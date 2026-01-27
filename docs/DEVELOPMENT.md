@@ -238,7 +238,7 @@ CORS(app)
 ### File upload fails
 
 Check:
-- File is under 10MB
+- File is under 50MB
 - File type is PDF, JPG, or PNG
 - `uploads/` directory exists (auto-created)
 
