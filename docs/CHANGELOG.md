@@ -69,12 +69,19 @@ All notable changes to this project are documented in this file.
 | `messageFile` | file | No | Handwritten note (PDF, JPG, PNG, max 50MB) |
 | `file` | file | No | Photo (PDF, JPG, PNG, max 50MB) |
 
+### Documentation Cleanup
+- Removed Google Drive references (feature deprecated)
+- Deleted `docs/GOOGLE_INTEGRATION.md` (no longer needed)
+- Updated all docs to reflect SMTP-only email setup
+
 ### Files Modified
 - `app.py` - Error handler, file size, email templates, file handling
 - `templates/submit.html` - Form submission logic, favicon, logo
-- `docs/DEVELOPMENT.md` - Updated max file size
-- `docs/API.md` - New form fields documented
-- `docs/ARCHITECTURE.md` - Updated file naming format
+- `docs/DEVELOPMENT.md` - Updated max file size, removed Drive references
+- `docs/API.md` - New form fields, removed Gmail/Drive endpoints
+- `docs/ARCHITECTURE.md` - Updated file naming format, removed Drive sections
+- `docs/DATABASE.md` - Removed google_drive_folder_url column
+- `README.md` - Removed Drive feature, updated project structure
 
 ---
 
