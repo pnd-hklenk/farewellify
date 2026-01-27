@@ -87,22 +87,19 @@
             </div>
         </div>
 
-        <!-- Gmail Connection Status -->
-        <div id="gmailStatusCard" class="bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray">
+        <!-- Email Status -->
+        <div id="emailStatusCard" class="bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray">
             <div class="flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center gap-3">
-                    <i class="fab fa-google text-2xl text-pandata-gray"></i>
+                    <i class="fas fa-envelope text-2xl text-pandata-gray"></i>
                     <div>
-                        <p id="gmailStatusText" class="font-medium text-pandata-charcoal">Checking Gmail connection...</p>
-                        <p id="gmailEmailText" class="text-sm text-pandata-gray"></p>
+                        <p id="emailStatusText" class="font-medium text-pandata-charcoal">Checking email status...</p>
+                        <p id="emailFromText" class="text-sm text-pandata-gray"></p>
                     </div>
                 </div>
-                <button id="gmailConnectBtn" onclick="connectGmail()" class="hidden px-4 py-2 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark text-sm">
-                    <i class="fab fa-google mr-2"></i>Connect Gmail
-                </button>
-                <button id="gmailDisconnectBtn" onclick="disconnectGmail()" class="hidden px-4 py-2 bg-pandata-gray text-white rounded-lg hover:bg-pandata-gray-dark text-sm">
-                    <i class="fas fa-unlink mr-2"></i>Disconnect
-                </button>
+                <span id="emailStatusBadge" class="hidden px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                    <i class="fas fa-check mr-1"></i>Ready
+                </span>
             </div>
         </div>
 
@@ -413,84 +410,37 @@ Thank you!`;
             showNotification('Template copied to clipboard!');
         }
 
-        // Gmail connection functions
-        async function checkGmailStatus() {
+        // Email status check
+        async function checkEmailStatus() {
             try {
-                const response = await fetch('/api/gmail/status');
+                const response = await fetch('/api/email/status');
                 const data = await response.json();
                 
-                const statusCard = document.getElementById('gmailStatusCard');
-                const statusText = document.getElementById('gmailStatusText');
-                const emailText = document.getElementById('gmailEmailText');
-                const connectBtn = document.getElementById('gmailConnectBtn');
-                const disconnectBtn = document.getElementById('gmailDisconnectBtn');
+                const statusCard = document.getElementById('emailStatusCard');
+                const statusText = document.getElementById('emailStatusText');
+                const emailFromText = document.getElementById('emailFromText');
+                const statusBadge = document.getElementById('emailStatusBadge');
                 
-                if (data.connected) {
+                if (data.emailConfigured) {
                     statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-red';
-                    let statusMsg = 'Google Connected';
-                    let features = [];
-                    if (data.connected) features.push('📧 Email');
-                    if (data.driveConnected) features.push('📁 Drive');
-                    statusText.textContent = statusMsg;
-                    emailText.innerHTML = `${data.email || ''} <span class="text-pandata-gray">(${features.join(', ')})</span>`;
-                    connectBtn.classList.add('hidden');
-                    disconnectBtn.classList.remove('hidden');
-                } else if (!data.credentialsConfigured) {
-                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray';
-                    statusText.textContent = 'Google not configured';
-                    emailText.innerHTML = 'Add <code class="bg-pandata-gray-light px-1 rounded">gmail_credentials.json</code> to enable';
-                    connectBtn.classList.add('hidden');
-                    disconnectBtn.classList.add('hidden');
+                    statusText.textContent = 'Email Ready';
+                    let features = [`📧 ${data.emailProvider}`];
+                    if (data.driveConfigured) features.push('📁 Drive');
+                    emailFromText.innerHTML = `Sending from: ${data.emailFrom} <span class="text-pandata-gray">(${features.join(', ')})</span>`;
+                    statusBadge.classList.remove('hidden');
                 } else {
-                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray';
-                    statusText.textContent = 'Google not connected';
-                    emailText.textContent = 'Click to connect (Gmail + Drive for auto-folders)';
-                    connectBtn.classList.remove('hidden');
-                    disconnectBtn.classList.add('hidden');
+                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-yellow-500';
+                    statusText.textContent = 'Email not configured';
+                    emailFromText.innerHTML = 'Add <code class="bg-pandata-gray-light px-1 rounded">RESEND_API_KEY</code> to .env';
+                    statusBadge.classList.add('hidden');
                 }
             } catch (error) {
-                console.error('Error checking Gmail status:', error);
-            }
-        }
-
-        async function connectGmail() {
-            try {
-                const response = await fetch('/api/gmail/connect');
-                const data = await response.json();
-                
-                if (data.authUrl) {
-                    // Open OAuth popup
-                    const popup = window.open(data.authUrl, 'gmail_auth', 'width=500,height=600');
-                    
-                    // Poll for completion
-                    const checkPopup = setInterval(() => {
-                        if (popup.closed) {
-                            clearInterval(checkPopup);
-                            checkGmailStatus();
-                        }
-                    }, 500);
-                } else if (data.error) {
-                    showNotification(data.error, 'error');
-                }
-            } catch (error) {
-                showNotification('Error connecting Gmail: ' + error.message, 'error');
-            }
-        }
-
-        async function disconnectGmail() {
-            if (!confirm('Disconnect Gmail? You can reconnect anytime.')) return;
-            
-            try {
-                await fetch('/api/gmail/disconnect', { method: 'POST' });
-                checkGmailStatus();
-                showNotification('Gmail disconnected');
-            } catch (error) {
-                showNotification('Error disconnecting Gmail', 'error');
+                console.error('Error checking email status:', error);
             }
         }
 
         loadData();
-        checkGmailStatus();
+        checkEmailStatus();
         // Refresh data every 30 seconds
         setInterval(loadData, 30000);
     </script>

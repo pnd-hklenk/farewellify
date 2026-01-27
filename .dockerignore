@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment and credentials
+.env
+gmail_credentials.json
+gmail_token.json
+token.pickle
+token.json
+credentials/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (will be created at runtime)
+uploads/
+
+# Documentation (not needed in container)
+docs/
+*.md
+!requirements.txt
+
+# Cursor
+.cursor/
+
+# Build files
+cloudbuild.yaml
+Dockerfile
+.dockerignore

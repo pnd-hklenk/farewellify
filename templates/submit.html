@@ -49,52 +49,138 @@
             </div>
 
             <form id="submitForm" class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-pandata-charcoal mb-1">Your Email *</label>
-                    <input type="email" name="email" required id="emailInput"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
-                           placeholder="your@pandata.de">
+                <!-- Personal greeting (shown when we know who they are) -->
+                <div id="personalGreeting" class="hidden text-center py-3 bg-pandata-coral/10 rounded-lg border border-pandata-coral/20">
+                    <p class="text-pandata-charcoal">
+                        Hi <span id="greetingName" class="font-semibold text-pandata-red"></span>! 👋
+                    </p>
+                    <p class="text-sm text-pandata-gray-dark mt-1">Ready to write your message?</p>
+                </div>
+                
+                <!-- Email/Name fields (collapsed when pre-filled) -->
+                <div id="identityFields">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-pandata-gray mb-1">Your Email</label>
+                            <input type="email" name="email" required id="emailInput"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                   placeholder="your@pandata.de">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-pandata-gray mb-1">Your Name</label>
+                            <input type="text" name="name" id="nameInput"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                   placeholder="Your name">
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-pandata-charcoal mb-1">Your Name</label>
-                    <input type="text" name="name" id="nameInput"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
-                           placeholder="Your name">
-                </div>
-
-                <!-- Option 1: Type a message -->
+                <!-- Step 1: Message (write OR upload) -->
                 <div>
                     <label class="block text-sm font-medium text-pandata-charcoal mb-2">
-                        <i class="fas fa-pen-fancy text-pandata-red mr-1"></i>
-                        Option 1: Type your message
+                        <i class="fas fa-heart text-pandata-red mr-1"></i>
+                        Step 1: Your farewell message
                     </label>
-                    <textarea name="message" rows="4"
-                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
-                              placeholder="Write your farewell message here..."></textarea>
-                </div>
-
-                <!-- Option 2: Upload a file -->
-                <div class="border-t border-pandata-gray-light pt-6">
-                    <label class="block text-sm font-medium text-pandata-charcoal mb-2">
-                        <i class="fas fa-upload text-pandata-red mr-1"></i>
-                        Option 2: Upload a handwritten note or photo
-                    </label>
-                    <p class="text-xs text-gray-500 mb-3">Accepted formats: PDF, JPG, PNG (max 10MB)</p>
                     
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
-                        <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
-                        <label for="fileInput" class="cursor-pointer">
-                            <div id="uploadPlaceholder">
-                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
-                                <p class="text-gray-600">Click to upload or drag and drop</p>
-                                <p class="text-xs text-gray-400 mt-1">PDF, JPG, or PNG</p>
+                    <!-- Preference hint -->
+                    <div class="mb-3 p-3 bg-pandata-coral/10 rounded-lg border border-pandata-coral/20">
+                        <p class="text-sm text-pandata-charcoal">
+                            <strong>💡 Tip:</strong> We love handwritten notes! 
+                            <span class="text-pandata-gray-dark">Upload a scan/photo of your handwritten message, or type below.</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Upload handwritten note (preferred) -->
+                    <div class="mb-4">
+                        <p class="text-xs font-medium text-pandata-gray-dark mb-2 uppercase tracking-wide">
+                            Option A: Upload handwritten note ⭐ <span class="text-pandata-red">(preferred!)</span>
+                        </p>
+                        <div id="messageUploadArea" class="border-2 border-dashed border-pandata-coral/50 rounded-lg p-4 text-center hover:border-pandata-red transition-colors cursor-pointer bg-white">
+                            <input type="file" id="messageFileInput" name="messageFile" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                            <label for="messageFileInput" class="cursor-pointer block">
+                                <div id="messageUploadPlaceholder">
+                                    <i class="fas fa-pencil-alt text-2xl text-pandata-coral mb-1"></i>
+                                    <p class="text-sm text-pandata-gray-dark">Click to upload handwritten note</p>
+                                    <p class="text-xs text-pandata-gray">PDF, JPG, or PNG</p>
+                                </div>
+                                <div id="messageUploadPreview" class="hidden">
+                                    <i class="fas fa-file-check text-2xl text-pandata-red mb-1"></i>
+                                    <p id="messageFileName" class="text-sm text-pandata-charcoal font-medium"></p>
+                                    <p class="text-xs text-green-600">✓ Handwritten note ready</p>
+                                    <button type="button" id="removeMessageFile" class="mt-1 text-xs text-pandata-gray hover:text-pandata-red">
+                                        <i class="fas fa-times mr-1"></i>Remove
+                                    </button>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Or type message -->
+                    <div>
+                        <p class="text-xs font-medium text-pandata-gray-dark mb-2 uppercase tracking-wide">
+                            Option B: Type your message
+                        </p>
+                        <textarea name="message" id="messageInput" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent text-sm"
+                                  placeholder="Or type your farewell message here..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Step 2: Photo Nudge (appears after message is written) -->
+                <div id="photoNudge" class="hidden border-t border-pandata-gray-light pt-6 transition-all">
+                    <div class="bg-gradient-to-r from-pandata-coral/10 to-pandata-red/10 rounded-lg p-5 border border-pandata-coral/30">
+                        <div class="flex items-start gap-3">
+                            <div class="text-3xl">📸</div>
+                            <div>
+                                <h3 class="font-semibold text-pandata-charcoal mb-1">
+                                    Step 2: Do you have any photos?
+                                </h3>
+                                <p class="text-sm text-pandata-gray-dark" id="photoNudgeText">
+                                    Please take a moment to look through your pictures – do you have any photos of or with <span class="font-semibold text-pandata-red" id="honoreeNameInNudge">them</span>?
+                                </p>
+                                <p class="text-sm text-pandata-gray-dark mt-2">
+                                    Team photos, events, fun moments... anything would be lovely! 💕
+                                </p>
                             </div>
-                            <div id="uploadPreview" class="hidden">
-                                <i class="fas fa-file-check text-4xl text-green-500 mb-2"></i>
-                                <p id="fileName" class="text-gray-700 font-medium"></p>
-                                <p class="text-xs text-green-600 mt-1">File ready to upload</p>
-                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload section -->
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-pandata-charcoal mb-2">
+                            <i class="fas fa-upload text-pandata-red mr-1"></i>
+                            Upload a photo or handwritten note
+                        </label>
+                        <p class="text-xs text-gray-500 mb-3">Accepted formats: PDF, JPG, PNG (max 10MB)</p>
+                        
+                        <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-pandata-red transition-colors cursor-pointer">
+                            <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                            <label for="fileInput" class="cursor-pointer block">
+                                <div id="uploadPlaceholder">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                    <p class="text-gray-600">Click to upload or drag and drop</p>
+                                    <p class="text-xs text-gray-400 mt-1">PDF, JPG, or PNG</p>
+                                </div>
+                                <div id="uploadPreview" class="hidden">
+                                    <i class="fas fa-image text-4xl text-pandata-red mb-2"></i>
+                                    <p id="fileName" class="text-pandata-charcoal font-medium"></p>
+                                    <p class="text-xs text-green-600 mt-1">✓ Photo ready to upload</p>
+                                    <button type="button" id="removeFile" class="mt-2 text-xs text-pandata-gray hover:text-pandata-red">
+                                        <i class="fas fa-times mr-1"></i>Remove
+                                    </button>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- No photo checkbox -->
+                    <div id="noPhotoSection" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="noPhotoCheckbox" name="noPhoto" 
+                                   class="mt-1 w-5 h-5 text-pandata-red border-gray-300 rounded focus:ring-pandata-red">
+                            <span class="text-sm text-pandata-gray-dark">
+                                I've looked through my photos and unfortunately don't have any to share.
+                            </span>
                         </label>
                     </div>
                 </div>
@@ -139,22 +225,57 @@
 
     <script>
         const eventId = '{{ event_id }}';
+        let honoreeName = '';
+        let hasPhoto = false;
         
         // Check for email in URL params
         const urlParams = new URLSearchParams(window.location.search);
         const emailParam = urlParams.get('email');
         if (emailParam) {
-            document.getElementById('emailInput').value = emailParam;
+            const emailInput = document.getElementById('emailInput');
+            emailInput.value = emailParam;
+            // Make email read-only since it's from the personalized link
+            emailInput.readOnly = true;
+            emailInput.classList.add('bg-gray-50', 'text-pandata-gray-dark');
         }
 
-        // Load event details
+        // Load event details + team member info
         async function loadEvent() {
             try {
-                const response = await fetch(`/api/events/${eventId}`);
+                // Include email in API call to get team member name
+                let url = `/api/events/${eventId}`;
+                if (emailParam) {
+                    url += `?email=${encodeURIComponent(emailParam)}`;
+                }
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    document.getElementById('honoreeName').textContent = 'Event not found';
+                    return;
+                }
+                
                 const event = await response.json();
                 
-                document.getElementById('honoreeName').textContent = event.honoree_name;
-                document.title = `Farewell Message for ${event.honoree_name}`;
+                // Set honoree name (the person leaving) - use first name only
+                const fullName = event.honoree_name;
+                honoreeName = fullName.split(' ')[0]; // First name only
+                document.getElementById('honoreeName').textContent = honoreeName;
+                document.getElementById('honoreeNameInNudge').textContent = honoreeName;
+                document.title = `Farewell Message for ${honoreeName}`;
+                
+                // Pre-fill team member's name if found
+                if (event.team_member_name) {
+                    document.getElementById('nameInput').value = event.team_member_name;
+                    document.getElementById('nameInput').readOnly = true;
+                    document.getElementById('nameInput').classList.add('bg-gray-50', 'text-pandata-gray-dark');
+                    
+                    // Show personal greeting
+                    document.getElementById('greetingName').textContent = event.team_member_name.split(' ')[0]; // First name
+                    document.getElementById('personalGreeting').classList.remove('hidden');
+                    
+                    // Collapse identity fields since we know who they are
+                    document.getElementById('identityFields').classList.add('hidden');
+                }
                 
                 if (event.message) {
                     document.getElementById('eventMessage').textContent = event.message;
@@ -175,22 +296,148 @@
                 });
             } catch (error) {
                 console.error('Error loading event:', error);
+                document.getElementById('honoreeName').textContent = 'Error loading event';
             }
         }
 
+        // Show photo nudge when user provides a message (typed OR uploaded)
+        const messageInput = document.getElementById('messageInput');
+        const messageFileInput = document.getElementById('messageFileInput');
+        const photoNudge = document.getElementById('photoNudge');
+        let nudgeShown = false;
+        let hasMessageFile = false;
+        
+        function showPhotoNudge() {
+            if (!nudgeShown) {
+                photoNudge.classList.remove('hidden');
+                photoNudge.style.animation = 'fadeIn 0.5s ease-out';
+                nudgeShown = true;
+                updateSubmitButton();
+            }
+        }
+        
+        // Show nudge when typing message
+        messageInput.addEventListener('input', () => {
+            if (messageInput.value.length > 10) {
+                showPhotoNudge();
+            }
+        });
+        
+        // Also show nudge when user clicks out of the message field
+        messageInput.addEventListener('blur', () => {
+            if (messageInput.value.length > 0) {
+                showPhotoNudge();
+            }
+        });
+        
+        // Handle handwritten note upload (Option A)
+        messageFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                hasMessageFile = true;
+                document.getElementById('messageUploadPlaceholder').classList.add('hidden');
+                document.getElementById('messageUploadPreview').classList.remove('hidden');
+                document.getElementById('messageFileName').textContent = file.name;
+                document.getElementById('messageUploadArea').classList.remove('border-pandata-coral/50');
+                document.getElementById('messageUploadArea').classList.add('border-pandata-red', 'bg-pandata-coral/5');
+                
+                // Clear typed message when uploading handwritten note
+                messageInput.value = '';
+                messageInput.placeholder = 'Handwritten note uploaded above ✓';
+                
+                showPhotoNudge();
+            }
+        });
+        
+        // Remove handwritten note
+        document.getElementById('removeMessageFile')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            messageFileInput.value = '';
+            hasMessageFile = false;
+            document.getElementById('messageUploadPlaceholder').classList.remove('hidden');
+            document.getElementById('messageUploadPreview').classList.add('hidden');
+            document.getElementById('messageUploadArea').classList.add('border-pandata-coral/50');
+            document.getElementById('messageUploadArea').classList.remove('border-pandata-red', 'bg-pandata-coral/5');
+            messageInput.placeholder = 'Or type your farewell message here...';
+            updateSubmitButton();
+        });
+
         // File upload preview
         const fileInput = document.getElementById('fileInput');
+        const noPhotoCheckbox = document.getElementById('noPhotoCheckbox');
+        const uploadArea = document.getElementById('uploadArea');
+        
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                hasPhoto = true;
                 document.getElementById('uploadPlaceholder').classList.add('hidden');
                 document.getElementById('uploadPreview').classList.remove('hidden');
                 document.getElementById('fileName').textContent = file.name;
+                uploadArea.classList.remove('border-gray-300');
+                uploadArea.classList.add('border-pandata-red', 'bg-pandata-coral/5');
+                
+                // Uncheck the "no photo" box since they uploaded one
+                noPhotoCheckbox.checked = false;
+                document.getElementById('noPhotoSection').classList.add('opacity-50');
+                
+                updateSubmitButton();
             }
         });
+        
+        // Remove file button
+        document.getElementById('removeFile')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.value = '';
+            hasPhoto = false;
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            document.getElementById('uploadPreview').classList.add('hidden');
+            uploadArea.classList.add('border-gray-300');
+            uploadArea.classList.remove('border-pandata-red', 'bg-pandata-coral/5');
+            document.getElementById('noPhotoSection').classList.remove('opacity-50');
+            updateSubmitButton();
+        });
+        
+        // No photo checkbox
+        noPhotoCheckbox.addEventListener('change', () => {
+            updateSubmitButton();
+        });
+        
+        // Update submit button state
+        function updateSubmitButton() {
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const hasMessage = messageInput.value.trim().length > 0 || hasMessageFile;
+            const photoOk = hasPhoto || noPhotoCheckbox.checked || !nudgeShown;
+            
+            if (hasMessage && photoOk) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else if (nudgeShown && hasMessage && !hasPhoto && !noPhotoCheckbox.checked) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (!hasMessage) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
 
         document.getElementById('submitForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // Validate: must have either typed message or uploaded handwritten note
+            const hasMessage = messageInput.value.trim().length > 0 || hasMessageFile;
+            if (!hasMessage) {
+                alert('Please write a message or upload a handwritten note.');
+                return;
+            }
+            
+            // Validate: if nudge is shown, must have photo or checkbox
+            if (nudgeShown && !hasPhoto && !noPhotoCheckbox.checked) {
+                alert('Please either upload a photo or confirm you don\'t have any to share.');
+                return;
+            }
             
             const submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
@@ -198,6 +445,11 @@
             
             const formData = new FormData(e.target);
             formData.append('eventId', eventId);
+            
+            // If handwritten note uploaded, mark it as the message file
+            if (hasMessageFile && messageFileInput.files[0]) {
+                formData.append('file', messageFileInput.files[0]);
+            }
 
             try {
                 const response = await fetch('/api/submissions', {
@@ -224,5 +476,12 @@
 
         loadEvent();
     </script>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </body>
 </html>

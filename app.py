@@ -2,8 +2,8 @@
 Farewellify - A simple app to organize farewell cards for colleagues
 """
 import os
-import smtplib
 import uuid
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -13,17 +13,12 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 
-# Import Gmail/Drive OAuth module
+# Google Drive for folder creation (optional)
 try:
-    from gmail_auth import (
-        is_gmail_connected, get_gmail_email, start_auth_flow, 
-        complete_auth_flow, send_email_via_gmail, disconnect_gmail,
-        CREDENTIALS_FILE, create_farewell_folder, is_drive_connected,
-        SCOPES
-    )
-    GMAIL_OAUTH_AVAILABLE = True
+    from gmail_auth import create_farewell_folder, is_drive_connected
+    DRIVE_AVAILABLE = True
 except ImportError:
-    GMAIL_OAUTH_AVAILABLE = False
+    DRIVE_AVAILABLE = False
 
 load_dotenv()
 
@@ -48,161 +43,58 @@ SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://datpxrveaizpigltowju.supabase.
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_KEY else None
 
-# Email configuration
-SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+# SMTP Email configuration
+SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 SMTP_USER = os.getenv('SMTP_USER', '')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+EMAIL_FROM = os.getenv('EMAIL_FROM', 'no-reply@pandata.de')
 
 
 def send_email(to_email: str, subject: str, html_content: str) -> bool:
-    """Send an email - uses Gmail OAuth if connected, falls back to SMTP"""
+    """Send an email via SMTP"""
     
-    # Try Gmail OAuth first
-    if GMAIL_OAUTH_AVAILABLE and is_gmail_connected():
-        return send_email_via_gmail(to_email, subject, html_content)
-    
-    # Fall back to SMTP
     if not SMTP_USER or not SMTP_PASSWORD:
         print(f"Email not configured. Would send to {to_email}: {subject}")
         return False
     
     try:
+        # Create message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = SMTP_USER
+        msg['From'] = EMAIL_FROM
         msg['To'] = to_email
         
+        # Attach HTML content
         html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
         
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        # Send email via SMTP
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_USER, to_email, msg.as_string())
+            server.sendmail(EMAIL_FROM, to_email, msg.as_string())
         
+        print(f"Email sent to {to_email}")
         return True
     except Exception as e:
         print(f"Error sending email: {e}")
         return False
 
 
-# Gmail OAuth routes
-@app.route('/api/gmail/status')
-def gmail_status():
-    """Check Gmail and Drive connection status"""
-    if not GMAIL_OAUTH_AVAILABLE:
-        return jsonify({
-            'connected': False,
-            'available': False,
-            'message': 'Google OAuth not available'
-        })
-    
-    gmail_connected = is_gmail_connected()
-    drive_connected = is_drive_connected()
-    email = get_gmail_email() if gmail_connected else None
-    credentials_exist = CREDENTIALS_FILE.exists()
+# Email status route
+@app.route('/api/email/status')
+def email_status():
+    """Check email configuration status"""
+    email_configured = bool(SMTP_USER and SMTP_PASSWORD)
+    drive_configured = DRIVE_AVAILABLE and is_drive_connected() if DRIVE_AVAILABLE else False
     
     return jsonify({
-        'connected': gmail_connected,
-        'driveConnected': drive_connected,
-        'available': True,
-        'email': email,
-        'credentialsConfigured': credentials_exist
+        'emailConfigured': email_configured,
+        'emailProvider': 'SMTP' if email_configured else None,
+        'emailFrom': EMAIL_FROM if email_configured else None,
+        'driveConfigured': drive_configured
     })
-
-
-@app.route('/api/gmail/connect')
-def gmail_connect():
-    """Start Gmail OAuth flow"""
-    if not GMAIL_OAUTH_AVAILABLE:
-        return jsonify({'error': 'Gmail OAuth not available'}), 400
-    
-    if not CREDENTIALS_FILE.exists():
-        return jsonify({
-            'error': 'Gmail credentials not configured',
-            'instructions': 'Download credentials.json from Google Cloud Console and save as gmail_credentials.json'
-        }), 400
-    
-    try:
-        redirect_uri = request.host_url.rstrip('/') + '/api/gmail/callback'
-        auth_url, state, flow = start_auth_flow(redirect_uri)
-        
-        # Store flow state in session for callback
-        session['gmail_oauth_state'] = state
-        session['gmail_redirect_uri'] = redirect_uri
-        
-        return jsonify({'authUrl': auth_url})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/gmail/callback')
-def gmail_callback():
-    """Handle Gmail OAuth callback"""
-    if not GMAIL_OAUTH_AVAILABLE:
-        return "Gmail OAuth not available", 400
-    
-    try:
-        redirect_uri = session.get('gmail_redirect_uri', request.host_url.rstrip('/') + '/api/gmail/callback')
-        
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        flow = InstalledAppFlow.from_client_secrets_file(
-            str(CREDENTIALS_FILE),
-            ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
-            redirect_uri=redirect_uri
-        )
-        
-        flow.fetch_token(authorization_response=request.url)
-        creds = flow.credentials
-        
-        from gmail_auth import save_credentials
-        save_credentials(creds)
-        
-        # Redirect back to admin with success message
-        return '''
-        <html>
-        <head>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-            <div class="bg-white p-8 rounded-lg shadow-lg text-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                </div>
-                <h1 class="text-xl font-bold text-gray-800 mb-2">Gmail Connected!</h1>
-                <p class="text-gray-600 mb-4">You can now send emails directly from Farewellify.</p>
-                <button onclick="window.close()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    Close Window
-                </button>
-            </div>
-        </body>
-        </html>
-        '''
-    except Exception as e:
-        return f'''
-        <html>
-        <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-            <div class="bg-white p-8 rounded-lg shadow-lg text-center">
-                <h1 class="text-xl font-bold text-red-600 mb-2">Connection Failed</h1>
-                <p class="text-gray-600">{str(e)}</p>
-                <button onclick="window.close()" class="mt-4 px-6 py-2 bg-gray-600 text-white rounded-lg">
-                    Close
-                </button>
-            </div>
-        </body>
-        </html>
-        ''', 400
-
-
-@app.route('/api/gmail/disconnect', methods=['POST'])
-def gmail_disconnect():
-    """Disconnect Gmail"""
-    if GMAIL_OAUTH_AVAILABLE:
-        disconnect_gmail()
-    return jsonify({'success': True})
 
 
 @app.route('/')
@@ -222,7 +114,7 @@ def create_event():
     
     # Auto-create Google Drive folder (YYMM Vorname format)
     drive_folder_url = None
-    if GMAIL_OAUTH_AVAILABLE and is_drive_connected():
+    if DRIVE_AVAILABLE and is_drive_connected():
         # Extract first name for folder naming
         first_name = honoree_name.split()[0] if ' ' in honoree_name else honoree_name
         folder_result = create_farewell_folder(first_name, data.get('deadline'))
@@ -427,7 +319,7 @@ def submit_page(event_id):
 
 @app.route('/api/events/<event_id>')
 def get_event(event_id):
-    """Get event details (public info only)"""
+    """Get event details (public info only) + team member info if email provided"""
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
     
@@ -435,7 +327,17 @@ def get_event(event_id):
     if not event.data or len(event.data) == 0:
         return jsonify({'error': 'Event not found'}), 404
     
-    return jsonify(event.data[0])
+    result = event.data[0]
+    
+    # If email parameter provided, look up the team member's name
+    email = request.args.get('email')
+    if email:
+        member = supabase.table('team_members').select('name, email').eq('event_id', event_id).eq('email', email).limit(1).execute()
+        if member.data and len(member.data) > 0:
+            result['team_member_name'] = member.data[0]['name']
+            result['team_member_email'] = member.data[0]['email']
+    
+    return jsonify(result)
 
 
 @app.route('/api/submissions', methods=['POST'])

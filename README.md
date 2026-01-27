@@ -42,15 +42,16 @@ python3 app.py
 
 Open http://localhost:5001
 
-### 4. Connect Google (optional but recommended)
+### 4. Configure Email (recommended)
 
-1. Go to the Admin Dashboard
-2. Click "Connect Gmail"
-3. Authorize with your Google account
+Add your Resend API key to `.env`:
 
-This enables:
-- Sending emails directly from the app
-- Auto-creating Drive folders
+```bash
+RESEND_API_KEY=re_xxxxxxxxxxxx
+EMAIL_FROM=Farewellify <farewell@pandata.de>
+```
+
+Get your free API key at [resend.com](https://resend.com)
 
 ## Documentation
 
@@ -59,7 +60,8 @@ This enables:
 | [Architecture](docs/ARCHITECTURE.md) | System overview, components, data flow |
 | [Database](docs/DATABASE.md) | Tables, schemas, Supabase setup |
 | [API Reference](docs/API.md) | All REST endpoints |
-| [Google Integration](docs/GOOGLE_INTEGRATION.md) | Gmail & Drive OAuth setup |
+| [Email Setup](docs/EMAIL_SETUP.md) | Resend email configuration |
+| [Google Drive](docs/GOOGLE_INTEGRATION.md) | Drive OAuth for auto-folders (optional) |
 | [Development](docs/DEVELOPMENT.md) | Local development guide |
 
 ## Project Structure
@@ -90,9 +92,8 @@ farewellify/
 - **Backend**: Python Flask
 - **Database**: Supabase (PostgreSQL)
 - **Frontend**: HTML + Tailwind CSS
-- **Auth**: Google OAuth 2.0
-- **Email**: Gmail API
-- **Storage**: Google Drive API + local uploads
+- **Email**: Resend (simple API, no OAuth needed!)
+- **Storage**: Google Drive API (optional) + local uploads
 
 ## Key Concepts
 
