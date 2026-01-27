@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Your Message - Pandata Farewellify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pandata: {
+                            red: '#fa4f4f',
+                            'red-dark': '#d14343',
+                            'red-darker': '#a43535',
+                            'coral': '#ff8888',
+                            'gray-light': '#eeeeee',
+                            'gray': '#999999',
+                            'gray-dark': '#595959',
+                            'charcoal': '#434343',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Open Sans', 'sans-serif'],
+                        'mono': ['Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen bg-pandata-gray-light font-sans">
+    <div class="container mx-auto px-4 py-12 max-w-xl">
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-pandata-red rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fas fa-heart text-3xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-light text-pandata-charcoal mb-2">Farewell Message for</h1>
+            <h2 id="honoreeName" class="text-3xl font-semibold text-pandata-red">Loading...</h2>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-8 border-t-4 border-pandata-red">
+            <div id="eventMessage" class="hidden mb-6 p-4 bg-pandata-gray-light rounded-lg text-pandata-charcoal italic">
+            </div>
+
+            <form id="submitForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-pandata-charcoal mb-1">Your Email *</label>
+                    <input type="email" name="email" required id="emailInput"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                           placeholder="your@pandata.de">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-pandata-charcoal mb-1">Your Name</label>
+                    <input type="text" name="name" id="nameInput"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                           placeholder="Your name">
+                </div>
+
+                <!-- Option 1: Type a message -->
+                <div>
+                    <label class="block text-sm font-medium text-pandata-charcoal mb-2">
+                        <i class="fas fa-pen-fancy text-pandata-red mr-1"></i>
+                        Option 1: Type your message
+                    </label>
+                    <textarea name="message" rows="4"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                              placeholder="Write your farewell message here..."></textarea>
+                </div>
+
+                <!-- Option 2: Upload a file -->
+                <div class="border-t border-pandata-gray-light pt-6">
+                    <label class="block text-sm font-medium text-pandata-charcoal mb-2">
+                        <i class="fas fa-upload text-pandata-red mr-1"></i>
+                        Option 2: Upload a handwritten note or photo
+                    </label>
+                    <p class="text-xs text-gray-500 mb-3">Accepted formats: PDF, JPG, PNG (max 10MB)</p>
+                    
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
+                        <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                        <label for="fileInput" class="cursor-pointer">
+                            <div id="uploadPlaceholder">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                <p class="text-gray-600">Click to upload or drag and drop</p>
+                                <p class="text-xs text-gray-400 mt-1">PDF, JPG, or PNG</p>
+                            </div>
+                            <div id="uploadPreview" class="hidden">
+                                <i class="fas fa-file-check text-4xl text-green-500 mb-2"></i>
+                                <p id="fileName" class="text-gray-700 font-medium"></p>
+                                <p class="text-xs text-green-600 mt-1">File ready to upload</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="driveSection" class="hidden border-t pt-6">
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">
+                        <i class="fab fa-google-drive text-green-500 mr-1"></i>
+                        Or upload directly to our shared folder
+                    </h3>
+                    <a id="driveLink" href="#" target="_blank"
+                       class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        <i class="fab fa-google-drive mr-2"></i>
+                        Open Google Drive Folder
+                    </a>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit"
+                            class="w-full py-3 px-6 bg-pandata-red text-white font-semibold rounded-lg hover:bg-pandata-red-dark transition-all shadow-lg">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Submit Message
+                    </button>
+                </div>
+            </form>
+
+            <p id="deadline" class="text-center text-sm text-pandata-gray mt-6 font-mono">
+                <i class="fas fa-clock mr-1"></i>
+                Deadline: <span id="deadlineDate">Loading...</span>
+            </p>
+        </div>
+
+        <!-- Success State -->
+        <div id="successState" class="hidden bg-white rounded-lg shadow-lg p-8 text-center border-t-4 border-pandata-red">
+            <div class="w-20 h-20 bg-pandata-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-4xl text-pandata-red"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-pandata-charcoal mb-2">Thank You!</h2>
+            <p class="text-pandata-gray-dark">Your message has been submitted successfully.</p>
+            <p class="text-pandata-gray mt-4">Your contribution will mean a lot!</p>
+        </div>
+    </div>
+
+    <script>
+        const eventId = '{{ event_id }}';
+        
+        // Check for email in URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailParam = urlParams.get('email');
+        if (emailParam) {
+            document.getElementById('emailInput').value = emailParam;
+        }
+
+        // Load event details
+        async function loadEvent() {
+            try {
+                const response = await fetch(`/api/events/${eventId}`);
+                const event = await response.json();
+                
+                document.getElementById('honoreeName').textContent = event.honoree_name;
+                document.title = `Farewell Message for ${event.honoree_name}`;
+                
+                if (event.message) {
+                    document.getElementById('eventMessage').textContent = event.message;
+                    document.getElementById('eventMessage').classList.remove('hidden');
+                }
+                
+                if (event.google_drive_folder_url) {
+                    document.getElementById('driveLink').href = event.google_drive_folder_url;
+                    document.getElementById('driveSection').classList.remove('hidden');
+                }
+                
+                const deadline = new Date(event.deadline);
+                document.getElementById('deadlineDate').textContent = deadline.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } catch (error) {
+                console.error('Error loading event:', error);
+            }
+        }
+
+        // File upload preview
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+                document.getElementById('uploadPreview').classList.remove('hidden');
+                document.getElementById('fileName').textContent = file.name;
+            }
+        });
+
+        document.getElementById('submitForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+            
+            const formData = new FormData(e.target);
+            formData.append('eventId', eventId);
+
+            try {
+                const response = await fetch('/api/submissions', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('submitForm').parentElement.classList.add('hidden');
+                    document.getElementById('successState').classList.remove('hidden');
+                } else {
+                    alert('Error submitting message: ' + (result.error || 'Unknown error'));
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Message';
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Message';
+            }
+        });
+
+        loadEvent();
+    </script>
+</body>
+</html>

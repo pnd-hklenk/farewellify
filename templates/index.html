@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farewellify - Pandata</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pandata: {
+                            red: '#fa4f4f',
+                            'red-dark': '#d14343',
+                            'red-darker': '#a43535',
+                            'red-darkest': '#9b3132',
+                            'coral': '#ff8888',
+                            'gray-light': '#eeeeee',
+                            'gray': '#999999',
+                            'gray-dark': '#595959',
+                            'charcoal': '#434343',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Open Sans', 'sans-serif'],
+                        'mono': ['Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen bg-pandata-gray-light font-sans">
+    <div class="container mx-auto px-4 py-12 max-w-2xl">
+        <div class="text-center mb-10">
+            <div class="mb-4">
+                <span class="text-pandata-red text-5xl font-semibold">Farewell</span><span class="text-pandata-charcoal text-5xl font-light">ify</span>
+            </div>
+            <p class="text-pandata-gray-dark font-mono text-sm uppercase tracking-wider">Pandata Farewell Cards</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-8 border-t-4 border-pandata-red">
+            <form id="createEventForm" class="space-y-6">
+                <!-- Honoree Section -->
+                <div class="border-b border-pandata-gray-light pb-6">
+                    <h2 class="text-lg font-semibold text-pandata-charcoal mb-4">
+                        <i class="fas fa-user-tie text-pandata-red mr-2"></i>
+                        Who is leaving?
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                            <input type="text" name="honoreeName" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                   placeholder="John Smith">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email (optional)</label>
+                            <input type="email" name="honoreeEmail"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                   placeholder="john@company.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Organizer Section -->
+                <div class="border-b border-pandata-gray-light pb-6">
+                    <h2 class="text-lg font-semibold text-pandata-charcoal mb-4">
+                        <i class="fas fa-user-shield text-pandata-red mr-2"></i>
+                        Your details (organizer)
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Your Name *</label>
+                            <input type="text" name="organizerName" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                   placeholder="Your name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Your Email *</label>
+                            <input type="email" name="organizerEmail" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                   placeholder="you@company.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Details -->
+                <div class="border-b border-pandata-gray-light pb-6">
+                    <h2 class="text-lg font-semibold text-pandata-charcoal mb-4">
+                        <i class="fas fa-calendar-alt text-pandata-red mr-2"></i>
+                        Event Details
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Submission Deadline *</label>
+                            <input type="date" name="deadline" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Message to team</label>
+                            <textarea name="message" rows="6"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent"
+                                      placeholder="This will be auto-filled with a template..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">A standard template will appear when you enter the honoree's name</p>
+                        </div>
+                        <div class="p-3 bg-pandata-gray-light rounded-lg">
+                            <p class="text-sm text-pandata-charcoal">
+                                <i class="fab fa-google-drive text-pandata-red mr-2"></i>
+                                <strong>Google Drive:</strong> Ein Ordner wird automatisch erstellt
+                            </p>
+                            <p class="text-xs text-pandata-gray mt-1">Format: YYMM Vorname (z.B. "2601 Julian")</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Members -->
+                <div>
+                    <h2 class="text-lg font-semibold text-pandata-charcoal mb-4">
+                        <i class="fas fa-users text-pandata-red mr-2"></i>
+                        Team Members to Invite
+                    </h2>
+                    
+                    <div class="mb-4 flex gap-2">
+                        <button type="button" onclick="selectAll()" class="px-3 py-1 bg-pandata-coral/20 text-pandata-red-dark rounded text-sm hover:bg-pandata-coral/40">
+                            Select All
+                        </button>
+                        <button type="button" onclick="deselectAll()" class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                            Deselect All
+                        </button>
+                    </div>
+                    
+                    <div id="employeesList" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                        <p class="text-gray-500 col-span-2 text-center py-4">Loading employees...</p>
+                    </div>
+                    
+                    <p id="selectedCount" class="text-sm text-gray-500 mt-2">0 employees selected</p>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button type="submit"
+                            class="w-full py-3 px-6 bg-pandata-red text-white font-semibold rounded-lg hover:bg-pandata-red-dark transition-all shadow-lg">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Create Farewell Event
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-md mx-4 text-center border-t-4 border-pandata-red">
+                <div class="w-16 h-16 bg-pandata-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-3xl text-pandata-red"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-pandata-charcoal mb-2">Event Created!</h2>
+                <p class="text-pandata-gray-dark mb-6">Your farewell event has been set up successfully.</p>
+                <div class="space-y-3">
+                    <div class="p-3 bg-pandata-gray-light rounded-lg text-left">
+                        <p class="text-sm text-pandata-gray font-mono uppercase text-xs">Admin Dashboard:</p>
+                        <a id="adminLink" href="#" class="text-pandata-red hover:underline break-all"></a>
+                    </div>
+                    <div class="p-3 bg-pandata-gray-light rounded-lg text-left">
+                        <p class="text-sm text-pandata-gray font-mono uppercase text-xs">Share with team:</p>
+                        <a id="submitLink" href="#" class="text-pandata-red hover:underline break-all"></a>
+                    </div>
+                </div>
+                <button onclick="goToAdmin()" class="mt-6 px-6 py-2 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark">
+                    Go to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let employees = [];
+        let createdAdminUrl = '';
+
+        // Load employees from database (excluding honoree completely)
+        async function loadEmployees() {
+            try {
+                const honoreeEmail = document.querySelector('[name="honoreeEmail"]').value;
+                const organizerEmail = document.querySelector('[name="organizerEmail"]').value;
+                
+                // Build URL with exclusions - honoree is NEVER shown
+                let url = '/api/employees';
+                const exclude = [];
+                if (honoreeEmail) exclude.push(honoreeEmail);
+                if (organizerEmail) exclude.push(organizerEmail);
+                if (exclude.length > 0) {
+                    url += '?' + exclude.map(e => `exclude=${encodeURIComponent(e)}`).join('&');
+                }
+                
+                const response = await fetch(url);
+                employees = await response.json();
+                renderEmployees();
+            } catch (error) {
+                console.error('Error loading employees:', error);
+            }
+        }
+
+        function renderEmployees() {
+            const container = document.getElementById('employeesList');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<p class="text-pandata-gray col-span-2 text-center py-4">No team members to invite</p>';
+                updateSelectedCount();
+                return;
+            }
+            
+            container.innerHTML = employees.map(emp => `
+                <label class="flex items-center gap-2 p-2 rounded hover:bg-pandata-gray-light cursor-pointer">
+                    <input type="checkbox" name="selectedEmployees" value="${emp.email}" 
+                           data-name="${emp.name}"
+                           checked
+                           onchange="updateSelectedCount()"
+                           class="w-4 h-4 text-pandata-red rounded focus:ring-pandata-red">
+                    <span class="text-sm text-pandata-charcoal">${emp.name}</span>
+                </label>
+            `).join('');
+            
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('[name="selectedEmployees"]:checked:not(:disabled)').length;
+            document.getElementById('selectedCount').textContent = `${checked} employees selected`;
+        }
+
+        function selectAll() {
+            document.querySelectorAll('[name="selectedEmployees"]:not(:disabled)').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('[name="selectedEmployees"]:not(:disabled)').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+
+        // Reload employees when honoree or organizer changes (they get excluded completely)
+        document.querySelector('[name="honoreeEmail"]').addEventListener('change', loadEmployees);
+        document.querySelector('[name="organizerEmail"]').addEventListener('change', loadEmployees);
+        
+        // Update default message when honoree name changes
+        document.querySelector('[name="honoreeName"]').addEventListener('input', (e) => {
+            updateDefaultMessage(e.target.value);
+        });
+
+        function updateDefaultMessage(name) {
+            const messageField = document.querySelector('[name="message"]');
+            if (!messageField.dataset.userEdited) {
+                messageField.value = `Hi Pandatas,
+
+We will be celebrating ${name || '[Name]'}'s farewell and therefore need your help!
+
+For the farewell card, please send a few words you'd like to share and any photos you have.
+
+You can upload handwritten notes or type in a text of your choice.
+
+Please submit your entry via this link: [LINK WIRD AUTOMATISCH EINGEFÜGT]
+
+Thanks a lot!`;
+            }
+        }
+
+        // Track if user has edited the message
+        document.querySelector('[name="message"]').addEventListener('input', (e) => {
+            e.target.dataset.userEdited = 'true';
+        });
+
+        document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            
+            // Get selected employees
+            const selectedEmails = Array.from(document.querySelectorAll('[name="selectedEmployees"]:checked:not(:disabled)'));
+            const teamMembers = selectedEmails.map(cb => ({
+                name: cb.dataset.name,
+                email: cb.value
+            }));
+
+            const data = {
+                honoreeName: formData.get('honoreeName'),
+                honoreeEmail: formData.get('honoreeEmail'),
+                organizerName: formData.get('organizerName'),
+                organizerEmail: formData.get('organizerEmail'),
+                deadline: formData.get('deadline'),
+                message: formData.get('message'),
+                googleDriveFolderUrl: formData.get('googleDriveFolderUrl'),
+                teamMembers: teamMembers
+            };
+
+            try {
+                const response = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    createdAdminUrl = result.adminUrl;
+                    document.getElementById('adminLink').href = result.adminUrl;
+                    document.getElementById('adminLink').textContent = window.location.origin + result.adminUrl;
+                    document.getElementById('submitLink').href = result.submitUrl;
+                    document.getElementById('submitLink').textContent = window.location.origin + result.submitUrl;
+                    document.getElementById('successModal').classList.remove('hidden');
+                } else {
+                    alert('Error creating event: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        function goToAdmin() {
+            window.location.href = createdAdminUrl;
+        }
+
+        // Initialize
+        loadEmployees();
+        updateDefaultMessage('');
+    </script>
+</body>
+</html>

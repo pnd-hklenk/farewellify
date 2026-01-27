@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Pandata Farewellify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pandata: {
+                            red: '#fa4f4f',
+                            'red-dark': '#d14343',
+                            'red-darker': '#a43535',
+                            'coral': '#ff8888',
+                            'gray-light': '#eeeeee',
+                            'gray': '#999999',
+                            'gray-dark': '#595959',
+                            'charcoal': '#434343',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Open Sans', 'sans-serif'],
+                        'mono': ['Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen bg-pandata-gray-light font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="bg-pandata-charcoal rounded-lg p-6 mb-8 text-white shadow-lg border-l-4 border-pandata-red">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <p class="text-pandata-gray text-sm mb-1 font-mono uppercase tracking-wider">Farewell Card for</p>
+                    <h1 id="honoreeName" class="text-3xl font-semibold">Loading...</h1>
+                </div>
+                <div class="text-right">
+                    <p class="text-pandata-gray text-sm mb-1 font-mono uppercase tracking-wider">Deadline</p>
+                    <p id="deadline" class="text-xl font-semibold text-pandata-coral">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white rounded-lg p-6 shadow-md border-t-2 border-pandata-charcoal">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-pandata-gray text-sm font-mono uppercase">Total Invited</p>
+                        <p id="statTotal" class="text-3xl font-semibold text-pandata-charcoal">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-pandata-gray-light rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-pandata-charcoal text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg p-6 shadow-md border-t-2 border-pandata-red">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-pandata-gray text-sm font-mono uppercase">Submitted</p>
+                        <p id="statSubmitted" class="text-3xl font-semibold text-pandata-red">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-pandata-coral/20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check text-pandata-red text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg p-6 shadow-md border-t-2 border-pandata-gray">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-pandata-gray text-sm font-mono uppercase">Pending</p>
+                        <p id="statPending" class="text-3xl font-semibold text-pandata-gray-dark">-</p>
+                    </div>
+                    <div class="w-12 h-12 bg-pandata-gray-light rounded-full flex items-center justify-center">
+                        <i class="fas fa-clock text-pandata-gray text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gmail Connection Status -->
+        <div id="gmailStatusCard" class="bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-3">
+                    <i class="fab fa-google text-2xl text-pandata-gray"></i>
+                    <div>
+                        <p id="gmailStatusText" class="font-medium text-pandata-charcoal">Checking Gmail connection...</p>
+                        <p id="gmailEmailText" class="text-sm text-pandata-gray"></p>
+                    </div>
+                </div>
+                <button id="gmailConnectBtn" onclick="connectGmail()" class="hidden px-4 py-2 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark text-sm">
+                    <i class="fab fa-google mr-2"></i>Connect Gmail
+                </button>
+                <button id="gmailDisconnectBtn" onclick="disconnectGmail()" class="hidden px-4 py-2 bg-pandata-gray text-white rounded-lg hover:bg-pandata-gray-dark text-sm">
+                    <i class="fas fa-unlink mr-2"></i>Disconnect
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 mb-8">
+            <button onclick="sendInvitations()" id="sendInvitationsBtn"
+                    class="px-6 py-3 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark transition-colors shadow-md flex items-center">
+                <i class="fas fa-envelope mr-2"></i>
+                Send Invitations
+            </button>
+            <button onclick="sendReminders()" id="sendRemindersBtn"
+                    class="px-6 py-3 bg-pandata-charcoal text-white rounded-lg hover:bg-black transition-colors shadow-md flex items-center">
+                <i class="fas fa-bell mr-2"></i>
+                Send Reminders to Pending
+            </button>
+            <button onclick="copySubmitLink()"
+                    class="px-6 py-3 bg-pandata-gray-dark text-white rounded-lg hover:bg-pandata-charcoal transition-colors shadow-md flex items-center">
+                <i class="fas fa-link mr-2"></i>
+                Copy Submit Link
+            </button>
+            <a id="driveLink" href="#" target="_blank" class="hidden px-6 py-3 bg-pandata-gray text-white rounded-lg hover:bg-pandata-gray-dark transition-colors shadow-md flex items-center">
+                <i class="fab fa-google-drive mr-2"></i>
+                Open Drive Folder
+            </a>
+        </div>
+
+        <!-- Notification -->
+        <div id="notification" class="hidden fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50"></div>
+
+        <!-- Team Members Table -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-pandata-gray-light bg-white">
+                <h2 class="text-lg font-semibold text-pandata-charcoal">
+                    <i class="fas fa-list mr-2 text-pandata-red"></i>
+                    Team Members
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTable" class="divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Messages Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-pandata-gray-light bg-white">
+                <h2 class="text-lg font-semibold text-pandata-charcoal">
+                    <i class="fas fa-comments mr-2 text-pandata-red"></i>
+                    Submitted Messages
+                </h2>
+            </div>
+            <div id="messagesSection" class="p-6 space-y-4">
+                <p class="text-pandata-gray text-center">No messages yet...</p>
+            </div>
+        </div>
+
+        <!-- Email Templates Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-pandata-gray-light bg-white">
+                <h2 class="text-lg font-semibold text-pandata-charcoal">
+                    <i class="fas fa-envelope-open-text mr-2 text-pandata-red"></i>
+                    Email Templates (Copy & Send Manually)
+                </h2>
+            </div>
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="font-medium text-gray-700 mb-2">Initial Invitation Email</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg relative">
+                        <button onclick="copyTemplate('invitationTemplate')" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <pre id="invitationTemplate" class="text-sm text-gray-600 whitespace-pre-wrap">Loading...</pre>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-medium text-gray-700 mb-2">Reminder Email</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg relative">
+                        <button onclick="copyTemplate('reminderTemplate')" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <pre id="reminderTemplate" class="text-sm text-gray-600 whitespace-pre-wrap">Loading...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const accessCode = '{{ access_code }}';
+        let eventData = null;
+
+        async function loadData() {
+            try {
+                const response = await fetch(`/api/admin/${accessCode}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                eventData = data;
+                renderData(data);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function renderData(data) {
+            // Header
+            document.getElementById('honoreeName').textContent = data.event.honoreeName;
+            document.title = `Admin - Farewell for ${data.event.honoreeName}`;
+            
+            const deadline = new Date(data.event.deadline);
+            document.getElementById('deadline').textContent = deadline.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            // Stats
+            document.getElementById('statTotal').textContent = data.stats.total;
+            document.getElementById('statSubmitted').textContent = data.stats.submitted;
+            document.getElementById('statPending').textContent = data.stats.pending;
+
+            // Drive link
+            if (data.event.googleDriveFolderUrl) {
+                const driveLink = document.getElementById('driveLink');
+                driveLink.href = data.event.googleDriveFolderUrl;
+                driveLink.classList.remove('hidden');
+            }
+
+            // Table
+            const tbody = document.getElementById('membersTable');
+            if (data.members.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No team members added yet</td></tr>';
+            } else {
+                tbody.innerHTML = data.members.map(member => `
+                    <tr class="${member.hasSubmitted ? 'bg-pandata-coral/10' : ''}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="font-medium text-pandata-charcoal">${member.name}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-pandata-gray-dark">
+                            ${member.email}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${member.hasSubmitted 
+                                ? `<span class="px-2 py-1 text-xs font-medium bg-pandata-red/20 text-pandata-red-dark rounded-full"><i class="fas fa-check mr-1"></i>Submitted</span>
+                                   ${member.fileUrl ? '<span class="ml-1 px-2 py-1 text-xs font-medium bg-pandata-charcoal/20 text-pandata-charcoal rounded-full"><i class="fas fa-paperclip mr-1"></i>File</span>' : ''}`
+                                : '<span class="px-2 py-1 text-xs font-medium bg-pandata-gray-light text-pandata-gray-dark rounded-full"><i class="fas fa-clock mr-1"></i>Pending</span>'
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-pandata-gray text-sm">
+                            ${member.submittedAt ? new Date(member.submittedAt).toLocaleDateString() : '-'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Messages
+            const messagesSection = document.getElementById('messagesSection');
+            const submittedMembers = data.members.filter(m => m.hasSubmitted && (m.message || m.fileUrl));
+            if (submittedMembers.length === 0) {
+                messagesSection.innerHTML = '<p class="text-pandata-gray text-center">No messages yet...</p>';
+            } else {
+                messagesSection.innerHTML = submittedMembers.map(member => `
+                    <div class="p-4 bg-pandata-gray-light rounded-lg border-l-4 border-pandata-red">
+                        ${member.message ? `<p class="text-pandata-charcoal">"${member.message}"</p>` : ''}
+                        ${member.fileUrl ? `
+                            <div class="mt-2">
+                                ${member.fileUrl.match(/\.(jpg|jpeg|png)$/i) 
+                                    ? `<img src="${member.fileUrl}" alt="Upload from ${member.name}" class="max-w-xs rounded-lg shadow-sm">`
+                                    : `<a href="${member.fileUrl}" target="_blank" class="inline-flex items-center text-pandata-red hover:underline">
+                                        <i class="fas fa-file-pdf mr-2"></i>View uploaded file
+                                       </a>`
+                                }
+                            </div>
+                        ` : ''}
+                        <p class="text-sm text-pandata-gray mt-2">— ${member.name}</p>
+                    </div>
+                `).join('');
+            }
+
+            // Email templates
+            const submitUrl = `${window.location.origin}/submit/${data.event.id}`;
+            const driveInfo = data.event.googleDriveFolderUrl 
+                ? `\n\nYou can also upload photos/videos to our shared folder: ${data.event.googleDriveFolderUrl}` 
+                : '';
+
+            document.getElementById('invitationTemplate').textContent = 
+`Subject: Farewell Card for ${data.event.honoreeName}
+
+Hi [Name],
+
+${data.event.message || `We're organizing a farewell card for ${data.event.honoreeName}!`}
+
+Click your personalized link to submit your message:
+${submitUrl}?email=[PERSON_EMAIL]
+
+(Each person gets their own link - no login required!)
+
+Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${driveInfo}
+
+Best,
+${data.event.organizerName}`;
+
+            document.getElementById('reminderTemplate').textContent = 
+`Subject: ⏰ Reminder - Farewell Card for ${data.event.honoreeName}
+
+Hi [Name],
+
+Friendly reminder: we're still collecting messages for ${data.event.honoreeName}'s farewell card.
+
+We haven't received your contribution yet - it would mean a lot!
+
+Submit your message here: ${submitUrl}
+
+Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${driveInfo}
+
+Thank you!`;
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-pandata-charcoal text-white' : 'bg-pandata-red text-white'
+            }`;
+            notification.classList.remove('hidden');
+            setTimeout(() => notification.classList.add('hidden'), 3000);
+        }
+
+        async function sendInvitations() {
+            if (!eventData) return;
+            
+            const btn = document.getElementById('sendInvitationsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+
+            try {
+                const response = await fetch(`/api/events/${eventData.event.id}/send-invitations`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Sent ${result.sentCount} invitation(s)!`);
+                } else {
+                    showNotification(result.error || 'Error sending invitations', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-envelope mr-2"></i>Send Invitations';
+        }
+
+        async function sendReminders() {
+            if (!eventData) return;
+            
+            const btn = document.getElementById('sendRemindersBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+
+            try {
+                const response = await fetch(`/api/events/${eventData.event.id}/send-reminders`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Sent ${result.sentCount} reminder(s) to ${result.pendingMembers} pending member(s)!`);
+                } else {
+                    showNotification(result.error || 'Error sending reminders', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-bell mr-2"></i>Send Reminders to Pending';
+        }
+
+        function copySubmitLink() {
+            if (!eventData) return;
+            const url = `${window.location.origin}/submit/${eventData.event.id}`;
+            navigator.clipboard.writeText(url);
+            showNotification('Link copied to clipboard!');
+        }
+
+        function copyTemplate(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text);
+            showNotification('Template copied to clipboard!');
+        }
+
+        // Gmail connection functions
+        async function checkGmailStatus() {
+            try {
+                const response = await fetch('/api/gmail/status');
+                const data = await response.json();
+                
+                const statusCard = document.getElementById('gmailStatusCard');
+                const statusText = document.getElementById('gmailStatusText');
+                const emailText = document.getElementById('gmailEmailText');
+                const connectBtn = document.getElementById('gmailConnectBtn');
+                const disconnectBtn = document.getElementById('gmailDisconnectBtn');
+                
+                if (data.connected) {
+                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-red';
+                    let statusMsg = 'Google Connected';
+                    let features = [];
+                    if (data.connected) features.push('📧 Email');
+                    if (data.driveConnected) features.push('📁 Drive');
+                    statusText.textContent = statusMsg;
+                    emailText.innerHTML = `${data.email || ''} <span class="text-pandata-gray">(${features.join(', ')})</span>`;
+                    connectBtn.classList.add('hidden');
+                    disconnectBtn.classList.remove('hidden');
+                } else if (!data.credentialsConfigured) {
+                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray';
+                    statusText.textContent = 'Google not configured';
+                    emailText.innerHTML = 'Add <code class="bg-pandata-gray-light px-1 rounded">gmail_credentials.json</code> to enable';
+                    connectBtn.classList.add('hidden');
+                    disconnectBtn.classList.add('hidden');
+                } else {
+                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray';
+                    statusText.textContent = 'Google not connected';
+                    emailText.textContent = 'Click to connect (Gmail + Drive for auto-folders)';
+                    connectBtn.classList.remove('hidden');
+                    disconnectBtn.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking Gmail status:', error);
+            }
+        }
+
+        async function connectGmail() {
+            try {
+                const response = await fetch('/api/gmail/connect');
+                const data = await response.json();
+                
+                if (data.authUrl) {
+                    // Open OAuth popup
+                    const popup = window.open(data.authUrl, 'gmail_auth', 'width=500,height=600');
+                    
+                    // Poll for completion
+                    const checkPopup = setInterval(() => {
+                        if (popup.closed) {
+                            clearInterval(checkPopup);
+                            checkGmailStatus();
+                        }
+                    }, 500);
+                } else if (data.error) {
+                    showNotification(data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Error connecting Gmail: ' + error.message, 'error');
+            }
+        }
+
+        async function disconnectGmail() {
+            if (!confirm('Disconnect Gmail? You can reconnect anytime.')) return;
+            
+            try {
+                await fetch('/api/gmail/disconnect', { method: 'POST' });
+                checkGmailStatus();
+                showNotification('Gmail disconnected');
+            } catch (error) {
+                showNotification('Error disconnecting Gmail', 'error');
+            }
+        }
+
+        loadData();
+        checkGmailStatus();
+        // Refresh data every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
