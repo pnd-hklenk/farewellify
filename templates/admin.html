@@ -57,37 +57,48 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-white rounded-lg p-6 shadow-md border-t-2 border-pandata-charcoal">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg p-5 shadow-md border-t-2 border-pandata-charcoal">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-pandata-gray text-sm font-mono uppercase">Total Invited</p>
-                        <p id="statTotal" class="text-3xl font-semibold text-pandata-charcoal">-</p>
+                        <p class="text-pandata-gray text-xs font-mono uppercase">Total</p>
+                        <p id="statTotal" class="text-2xl font-semibold text-pandata-charcoal">-</p>
                     </div>
-                    <div class="w-12 h-12 bg-pandata-gray-light rounded-full flex items-center justify-center">
-                        <i class="fas fa-users text-pandata-charcoal text-xl"></i>
+                    <div class="w-10 h-10 bg-pandata-gray-light rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-pandata-charcoal"></i>
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-lg p-6 shadow-md border-t-2 border-pandata-red">
+            <div class="bg-white rounded-lg p-5 shadow-md border-t-2 border-green-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-pandata-gray text-sm font-mono uppercase">Submitted</p>
-                        <p id="statSubmitted" class="text-3xl font-semibold text-pandata-red">-</p>
+                        <p class="text-pandata-gray text-xs font-mono uppercase">Submitted</p>
+                        <p id="statSubmitted" class="text-2xl font-semibold text-green-600">-</p>
                     </div>
-                    <div class="w-12 h-12 bg-pandata-coral/20 rounded-full flex items-center justify-center">
-                        <i class="fas fa-check text-pandata-red text-xl"></i>
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check text-green-600"></i>
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-lg p-6 shadow-md border-t-2 border-pandata-gray">
+            <div class="bg-white rounded-lg p-5 shadow-md border-t-2 border-yellow-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-pandata-gray text-sm font-mono uppercase">Pending</p>
-                        <p id="statPending" class="text-3xl font-semibold text-pandata-gray-dark">-</p>
+                        <p class="text-pandata-gray text-xs font-mono uppercase">Invited</p>
+                        <p id="statInvited" class="text-2xl font-semibold text-yellow-600">-</p>
                     </div>
-                    <div class="w-12 h-12 bg-pandata-gray-light rounded-full flex items-center justify-center">
-                        <i class="fas fa-clock text-pandata-gray text-xl"></i>
+                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-envelope text-yellow-600"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg p-5 shadow-md border-t-2 border-pandata-gray">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-pandata-gray text-xs font-mono uppercase">Not Invited</p>
+                        <p id="statNotInvited" class="text-2xl font-semibold text-pandata-gray-dark">-</p>
+                    </div>
+                    <div class="w-10 h-10 bg-pandata-gray-light rounded-full flex items-center justify-center">
+                        <i class="fas fa-user-clock text-pandata-gray"></i>
                     </div>
                 </div>
             </div>
@@ -243,7 +254,8 @@
             // Stats
             document.getElementById('statTotal').textContent = data.stats.total;
             document.getElementById('statSubmitted').textContent = data.stats.submitted;
-            document.getElementById('statPending').textContent = data.stats.pending;
+            document.getElementById('statInvited').textContent = data.stats.invited;
+            document.getElementById('statNotInvited').textContent = data.stats.notInvited;
 
             // Drive link (deprecated - kept for backwards compatibility)
             // if (data.event.googleDriveFolderUrl) {
@@ -257,8 +269,25 @@
             if (data.members.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No team members added yet</td></tr>';
             } else {
-                tbody.innerHTML = data.members.map(member => `
-                    <tr class="${member.hasSubmitted ? 'bg-pandata-coral/10' : ''}">
+                tbody.innerHTML = data.members.map(member => {
+                    // Determine status
+                    let statusBadge;
+                    let rowClass = '';
+                    
+                    if (member.hasSubmitted) {
+                        rowClass = 'bg-green-50';
+                        statusBadge = `<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full"><i class="fas fa-check mr-1"></i>Submitted</span>
+                                       ${member.fileUrl ? '<span class="ml-1 px-2 py-1 text-xs font-medium bg-pandata-charcoal/20 text-pandata-charcoal rounded-full"><i class="fas fa-paperclip mr-1"></i>File</span>' : ''}`;
+                    } else if (member.invitedAt) {
+                        rowClass = 'bg-yellow-50';
+                        statusBadge = `<span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full"><i class="fas fa-clock mr-1"></i>Pending</span>
+                                       <span class="ml-1 text-xs text-pandata-gray">(invited ${new Date(member.invitedAt).toLocaleDateString()})</span>`;
+                    } else {
+                        statusBadge = '<span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full"><i class="fas fa-user-clock mr-1"></i>Not invited</span>';
+                    }
+                    
+                    return `
+                    <tr class="${rowClass}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="font-medium text-pandata-charcoal">${member.name}</span>
                         </td>
@@ -266,17 +295,13 @@
                             ${member.email}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            ${member.hasSubmitted 
-                                ? `<span class="px-2 py-1 text-xs font-medium bg-pandata-red/20 text-pandata-red-dark rounded-full"><i class="fas fa-check mr-1"></i>Submitted</span>
-                                   ${member.fileUrl ? '<span class="ml-1 px-2 py-1 text-xs font-medium bg-pandata-charcoal/20 text-pandata-charcoal rounded-full"><i class="fas fa-paperclip mr-1"></i>File</span>' : ''}`
-                                : '<span class="px-2 py-1 text-xs font-medium bg-pandata-gray-light text-pandata-gray-dark rounded-full"><i class="fas fa-clock mr-1"></i>Pending</span>'
-                            }
+                            ${statusBadge}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-pandata-gray text-sm">
                             ${member.submittedAt ? new Date(member.submittedAt).toLocaleDateString() : '-'}
                         </td>
-                    </tr>
-                `).join('');
+                    </tr>`;
+                }).join('');
             }
 
             // Messages

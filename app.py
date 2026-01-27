@@ -521,6 +521,11 @@ def get_admin_data(access_code):
             'fileUrl': submission['file_url'] if submission else None
         })
     
+    # Calculate detailed stats
+    submitted_count = len(submissions.data)
+    invited_count = sum(1 for m in members.data if m['invited_at'] and m['id'] not in submitted_ids)
+    not_invited_count = sum(1 for m in members.data if not m['invited_at'] and m['id'] not in submitted_ids)
+    
     return jsonify({
         'event': {
             'id': event_data['id'],
@@ -536,8 +541,9 @@ def get_admin_data(access_code):
         'members': member_list,
         'stats': {
             'total': len(members.data),
-            'submitted': len(submissions.data),
-            'pending': len(members.data) - len(submissions.data)
+            'submitted': submitted_count,
+            'invited': invited_count,
+            'notInvited': not_invited_count
         }
     })
 
