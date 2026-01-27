@@ -7,6 +7,7 @@ import smtplib
 import zipfile
 import io
 import json
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -74,7 +75,40 @@ def allowed_file(filename):
 # Supabase configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://datpxrveaizpigltowju.supabase.co')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
+SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'uploads')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_KEY else None
+
+
+def upload_to_supabase_storage(file_data: bytes, filename: str) -> str:
+    """Upload a file to Supabase Storage and return the public URL"""
+    if not supabase:
+        raise Exception('Supabase not configured')
+    
+    # Determine content type
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    content_types = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'pdf': 'application/pdf',
+        'gif': 'image/gif'
+    }
+    content_type = content_types.get(ext, 'application/octet-stream')
+    
+    # Upload to Supabase Storage
+    try:
+        result = supabase.storage.from_(SUPABASE_STORAGE_BUCKET).upload(
+            filename,
+            file_data,
+            file_options={"content-type": content_type}
+        )
+        
+        # Get public URL
+        public_url = supabase.storage.from_(SUPABASE_STORAGE_BUCKET).get_public_url(filename)
+        return public_url
+    except Exception as e:
+        app.logger.error(f'Supabase storage upload error: {str(e)}')
+        raise
 
 # SMTP Email configuration
 SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.gmail.com')
@@ -428,9 +462,9 @@ def create_submission():
             if msg_file and msg_file.filename and allowed_file(msg_file.filename):
                 ext = msg_file.filename.rsplit('.', 1)[1].lower()
                 unique_filename = f"{event_id}_msg_{uuid.uuid4().hex[:8]}.{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                msg_file.save(filepath)
-                file_url = f"/uploads/{unique_filename}"
+                # Upload to Supabase Storage
+                file_data = msg_file.read()
+                file_url = upload_to_supabase_storage(file_data, unique_filename)
         
         # Handle multiple photo files (up to 15)
         photo_files = request.files.getlist('photos')
@@ -438,9 +472,10 @@ def create_submission():
             if photo and photo.filename and allowed_file(photo.filename):
                 ext = photo.filename.rsplit('.', 1)[1].lower()
                 unique_filename = f"{event_id}_photo_{uuid.uuid4().hex[:8]}.{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                photo.save(filepath)
-                photo_urls.append(f"/uploads/{unique_filename}")
+                # Upload to Supabase Storage
+                file_data = photo.read()
+                photo_url = upload_to_supabase_storage(file_data, unique_filename)
+                photo_urls.append(photo_url)
         
         # Legacy: Handle single 'file' upload (for backwards compatibility)
         if 'file' in request.files:
@@ -448,9 +483,10 @@ def create_submission():
             if file and file.filename and allowed_file(file.filename):
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 unique_filename = f"{event_id}_{uuid.uuid4().hex[:8]}.{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                file.save(filepath)
-                photo_urls.append(f"/uploads/{unique_filename}")
+                # Upload to Supabase Storage
+                file_data = file.read()
+                photo_url = upload_to_supabase_storage(file_data, unique_filename)
+                photo_urls.append(photo_url)
         
         # Find the team member
         member = supabase.table('team_members').select('*').eq('event_id', event_id).eq('email', email).limit(1).execute()
@@ -676,27 +712,53 @@ def download_all_submissions(access_code):
             
             # Add handwritten note file to ZIP if exists
             if submission.get('file_url'):
-                file_path = submission['file_url'].lstrip('/')
-                full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
-                summary_lines.append(f"Handwritten note: {submission['file_url']}")
+                file_url = submission['file_url']
+                summary_lines.append(f"Handwritten note: {file_url}")
                 
-                if os.path.exists(full_path):
-                    ext = os.path.splitext(full_path)[1]
-                    zip_filename = f"{idx:02d}_{safe_name}_note{ext}"
-                    zip_file.write(full_path, zip_filename)
+                # Determine file extension
+                ext = os.path.splitext(file_url.split('?')[0])[1] or '.jpg'
+                zip_filename = f"{idx:02d}_{safe_name}_note{ext}"
+                
+                # Check if it's a Supabase Storage URL or local file
+                if file_url.startswith('http'):
+                    # Fetch from Supabase Storage
+                    try:
+                        response = requests.get(file_url, timeout=30)
+                        if response.status_code == 200:
+                            zip_file.writestr(zip_filename, response.content)
+                    except Exception as e:
+                        app.logger.error(f'Error fetching file {file_url}: {str(e)}')
+                else:
+                    # Legacy: local file
+                    file_path = file_url.lstrip('/')
+                    full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
+                    if os.path.exists(full_path):
+                        zip_file.write(full_path, zip_filename)
             
             # Add all photos to ZIP
             if submission.get('photo_urls'):
                 try:
                     photo_urls = json.loads(submission['photo_urls'])
                     for photo_idx, photo_url in enumerate(photo_urls, 1):
-                        file_path = photo_url.lstrip('/')
-                        full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
+                        # Determine file extension
+                        ext = os.path.splitext(photo_url.split('?')[0])[1] or '.jpg'
+                        zip_filename = f"{idx:02d}_{safe_name}_photo{photo_idx:02d}{ext}"
                         
-                        if os.path.exists(full_path):
-                            ext = os.path.splitext(full_path)[1]
-                            zip_filename = f"{idx:02d}_{safe_name}_photo{photo_idx:02d}{ext}"
-                            zip_file.write(full_path, zip_filename)
+                        # Check if it's a Supabase Storage URL or local file
+                        if photo_url.startswith('http'):
+                            # Fetch from Supabase Storage
+                            try:
+                                response = requests.get(photo_url, timeout=30)
+                                if response.status_code == 200:
+                                    zip_file.writestr(zip_filename, response.content)
+                            except Exception as e:
+                                app.logger.error(f'Error fetching photo {photo_url}: {str(e)}')
+                        else:
+                            # Legacy: local file
+                            file_path = photo_url.lstrip('/')
+                            full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
+                            if os.path.exists(full_path):
+                                zip_file.write(full_path, zip_filename)
                     
                     summary_lines.append(f"Photos: {len(photo_urls)}")
                 except:
