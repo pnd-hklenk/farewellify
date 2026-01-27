@@ -104,43 +104,27 @@
             </div>
         </div>
 
-        <!-- Email Status -->
-        <div id="emailStatusCard" class="bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-gray">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-envelope text-2xl text-pandata-gray"></i>
-                    <div>
-                        <p id="emailStatusText" class="font-medium text-pandata-charcoal">Checking email status...</p>
-                        <p id="emailFromText" class="text-sm text-pandata-gray"></p>
-                    </div>
-                </div>
-                <span id="emailStatusBadge" class="hidden px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                    <i class="fas fa-check mr-1"></i>Ready
-                </span>
-            </div>
-        </div>
-
         <!-- Action Buttons -->
-        <div class="flex flex-wrap gap-4 mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             <button onclick="sendInvitations()" id="sendInvitationsBtn"
-                    class="px-6 py-3 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark transition-colors shadow-md flex items-center">
+                    class="py-3 px-4 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark transition-colors shadow-md flex items-center justify-center text-sm font-medium">
                 <i class="fas fa-envelope mr-2"></i>
                 Send Invitations
             </button>
             <button onclick="sendReminders()" id="sendRemindersBtn"
-                    class="px-6 py-3 bg-pandata-charcoal text-white rounded-lg hover:bg-black transition-colors shadow-md flex items-center">
+                    class="py-3 px-4 bg-pandata-charcoal text-white rounded-lg hover:bg-black transition-colors shadow-md flex items-center justify-center text-sm font-medium">
                 <i class="fas fa-bell mr-2"></i>
-                Send Reminders to Pending
+                Remind All Pending
             </button>
             <button onclick="copySubmitLink()"
-                    class="px-6 py-3 bg-pandata-gray-dark text-white rounded-lg hover:bg-pandata-charcoal transition-colors shadow-md flex items-center">
+                    class="py-3 px-4 bg-pandata-gray-dark text-white rounded-lg hover:bg-pandata-charcoal transition-colors shadow-md flex items-center justify-center text-sm font-medium">
                 <i class="fas fa-link mr-2"></i>
-                Copy Submit Link
+                Copy Link
             </button>
             <button onclick="downloadAll()" id="downloadAllBtn"
-                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center">
+                    class="py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center text-sm font-medium">
                 <i class="fas fa-download mr-2"></i>
-                Download All (ZIP)
+                Download ZIP
             </button>
         </div>
 
@@ -429,7 +413,7 @@ This is your personalized link – no login required!`;
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-bell mr-2"></i>Send Reminders to Pending';
+            btn.innerHTML = '<i class="fas fa-bell mr-2"></i>Remind All Pending';
         }
 
         function copySubmitLink() {
@@ -461,39 +445,11 @@ This is your personalized link – no login required!`;
             // Reset button after a delay
             setTimeout(() => {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-download mr-2"></i>Download All (ZIP)';
+                btn.innerHTML = '<i class="fas fa-download mr-2"></i>Download ZIP';
             }, 2000);
         }
 
-        // Email status check
-        async function checkEmailStatus() {
-            try {
-                const response = await fetch('/api/email/status');
-                const data = await response.json();
-                
-                const statusCard = document.getElementById('emailStatusCard');
-                const statusText = document.getElementById('emailStatusText');
-                const emailFromText = document.getElementById('emailFromText');
-                const statusBadge = document.getElementById('emailStatusBadge');
-                
-                if (data.emailConfigured) {
-                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-red';
-                    statusText.textContent = 'Email Ready';
-                    emailFromText.innerHTML = `Sending from: ${data.emailFrom} <span class="text-pandata-gray">(📧 ${data.emailProvider})</span>`;
-                    statusBadge.classList.remove('hidden');
-                } else {
-                    statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-yellow-500';
-                    statusText.textContent = 'Email not configured';
-                    emailFromText.innerHTML = 'SMTP credentials not configured';
-                    statusBadge.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('Error checking email status:', error);
-            }
-        }
-
         loadData();
-        checkEmailStatus();
         // Refresh data every 30 seconds
         setInterval(loadData, 30000);
     </script>
