@@ -120,10 +120,11 @@
                 <i class="fas fa-link mr-2"></i>
                 Copy Submit Link
             </button>
-            <a id="driveLink" href="#" target="_blank" class="hidden px-6 py-3 bg-pandata-gray text-white rounded-lg hover:bg-pandata-gray-dark transition-colors shadow-md flex items-center">
-                <i class="fab fa-google-drive mr-2"></i>
-                Open Drive Folder
-            </a>
+            <button onclick="downloadAll()" id="downloadAllBtn"
+                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center">
+                <i class="fas fa-download mr-2"></i>
+                Download All (ZIP)
+            </button>
         </div>
 
         <!-- Notification -->
@@ -238,12 +239,12 @@
             document.getElementById('statSubmitted').textContent = data.stats.submitted;
             document.getElementById('statPending').textContent = data.stats.pending;
 
-            // Drive link
-            if (data.event.googleDriveFolderUrl) {
-                const driveLink = document.getElementById('driveLink');
-                driveLink.href = data.event.googleDriveFolderUrl;
-                driveLink.classList.remove('hidden');
-            }
+            // Drive link (deprecated - kept for backwards compatibility)
+            // if (data.event.googleDriveFolderUrl) {
+            //     const driveLink = document.getElementById('driveLink');
+            //     driveLink.href = data.event.googleDriveFolderUrl;
+            //     driveLink.classList.remove('hidden');
+            // }
 
             // Table
             const tbody = document.getElementById('membersTable');
@@ -282,13 +283,16 @@
                     <div class="p-4 bg-pandata-gray-light rounded-lg border-l-4 border-pandata-red">
                         ${member.message ? `<p class="text-pandata-charcoal">"${member.message}"</p>` : ''}
                         ${member.fileUrl ? `
-                            <div class="mt-2">
+                            <div class="mt-2 flex items-center gap-3">
                                 ${member.fileUrl.match(/\.(jpg|jpeg|png)$/i) 
                                     ? `<img src="${member.fileUrl}" alt="Upload from ${member.name}" class="max-w-xs rounded-lg shadow-sm">`
                                     : `<a href="${member.fileUrl}" target="_blank" class="inline-flex items-center text-pandata-red hover:underline">
-                                        <i class="fas fa-file-pdf mr-2"></i>View uploaded file
+                                        <i class="fas fa-file-pdf mr-2"></i>View file
                                        </a>`
                                 }
+                                <a href="${member.fileUrl}" download class="inline-flex items-center px-3 py-1 bg-pandata-charcoal text-white text-sm rounded hover:bg-black transition-colors">
+                                    <i class="fas fa-download mr-1"></i>Download
+                                </a>
                             </div>
                         ` : ''}
                         <p class="text-sm text-pandata-gray mt-2">— ${member.name}</p>
@@ -298,9 +302,6 @@
 
             // Email templates
             const submitUrl = `${window.location.origin}/submit/${data.event.id}`;
-            const driveInfo = data.event.googleDriveFolderUrl 
-                ? `\n\nYou can also upload photos/videos to our shared folder: ${data.event.googleDriveFolderUrl}` 
-                : '';
 
             document.getElementById('invitationTemplate').textContent = 
 `Subject: Farewell Card for ${data.event.honoreeName}
@@ -314,7 +315,7 @@ ${submitUrl}?email=[PERSON_EMAIL]
 
 (Each person gets their own link - no login required!)
 
-Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${driveInfo}
+Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
 
 Best,
 ${data.event.organizerName}`;
@@ -330,7 +331,7 @@ We haven't received your contribution yet - it would mean a lot!
 
 Submit your message here: ${submitUrl}
 
-Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${driveInfo}
+Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
 
 Thank you!`;
         }
@@ -410,6 +411,26 @@ Thank you!`;
             showNotification('Template copied to clipboard!');
         }
 
+        function downloadAll() {
+            if (!eventData || eventData.stats.submitted === 0) {
+                showNotification('No submissions to download yet', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('downloadAllBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Preparing...';
+            
+            // Trigger download
+            window.location.href = `/api/admin/${accessCode}/download-all`;
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-download mr-2"></i>Download All (ZIP)';
+            }, 2000);
+        }
+
         // Email status check
         async function checkEmailStatus() {
             try {
@@ -431,7 +452,7 @@ Thank you!`;
                 } else {
                     statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-yellow-500';
                     statusText.textContent = 'Email not configured';
-                    emailFromText.innerHTML = 'Add <code class="bg-pandata-gray-light px-1 rounded">RESEND_API_KEY</code> to .env';
+                    emailFromText.innerHTML = 'SMTP credentials not configured';
                     statusBadge.classList.add('hidden');
                 }
             } catch (error) {

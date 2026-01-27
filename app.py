@@ -4,10 +4,12 @@ Farewellify - A simple app to organize farewell cards for colleagues
 import os
 import uuid
 import smtplib
+import zipfile
+import io
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, session, send_file
 from flask_cors import CORS
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -492,6 +494,77 @@ def get_admin_data(access_code):
             'pending': len(members.data) - len(submissions.data)
         }
     })
+
+
+@app.route('/api/admin/<access_code>/download-all')
+def download_all_submissions(access_code):
+    """Download all submissions as a ZIP file"""
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    # Get event by access code
+    event = supabase.table('farewell_events').select('*').eq('access_code', access_code).limit(1).execute()
+    if not event.data or len(event.data) == 0:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    event_data = event.data[0]
+    event_id = event_data['id']
+    honoree_name = event_data['honoree_name']
+    
+    # Get all submissions with team member info
+    submissions = supabase.table('submissions').select('*, team_members(name, email)').eq('event_id', event_id).execute()
+    
+    if not submissions.data:
+        return jsonify({'error': 'No submissions yet'}), 404
+    
+    # Create ZIP file in memory
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Add a summary text file
+        summary_lines = [f"Farewell Card for {honoree_name}", "=" * 40, ""]
+        
+        for idx, submission in enumerate(submissions.data, 1):
+            member_name = submission['team_members']['name'] if submission.get('team_members') else 'Unknown'
+            member_email = submission['team_members']['email'] if submission.get('team_members') else ''
+            
+            # Add message to summary
+            summary_lines.append(f"From: {member_name} ({member_email})")
+            if submission.get('message'):
+                summary_lines.append(f'"{submission["message"]}"')
+            if submission.get('file_url'):
+                summary_lines.append(f"File: {submission['file_url']}")
+            summary_lines.append("")
+            
+            # Add file to ZIP if exists
+            if submission.get('file_url'):
+                file_path = submission['file_url'].lstrip('/')
+                full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
+                
+                if os.path.exists(full_path):
+                    # Get original extension
+                    ext = os.path.splitext(full_path)[1]
+                    # Create clean filename
+                    safe_name = member_name.replace(' ', '_').replace('/', '-')
+                    zip_filename = f"{idx:02d}_{safe_name}{ext}"
+                    zip_file.write(full_path, zip_filename)
+        
+        # Add summary file
+        summary_content = "\n".join(summary_lines)
+        zip_file.writestr("00_messages_summary.txt", summary_content)
+    
+    zip_buffer.seek(0)
+    
+    # Create filename
+    safe_honoree = honoree_name.replace(' ', '_').replace('/', '-')
+    filename = f"farewell_{safe_honoree}.zip"
+    
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 if __name__ == '__main__':
