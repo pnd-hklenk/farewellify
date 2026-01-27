@@ -116,10 +116,10 @@
                 <i class="fas fa-bell mr-2"></i>
                 Remind All Pending
             </button>
-            <button onclick="copySubmitLink()"
+            <button onclick="openAddMemberModal()" id="addMemberBtn"
                     class="py-3 px-4 bg-pandata-gray-dark text-white rounded-lg hover:bg-pandata-charcoal transition-colors shadow-md flex items-center justify-center text-sm font-medium">
-                <i class="fas fa-link mr-2"></i>
-                Copy Link
+                <i class="fas fa-user-plus mr-2"></i>
+                Add Member
             </button>
             <button onclick="downloadAll()" id="downloadAllBtn"
                     class="py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md flex items-center justify-center text-sm font-medium">
@@ -142,6 +142,49 @@
                     <i class="fas fa-external-link-alt mr-2"></i>
                     Open in Miro
                 </a>
+            </div>
+        </div>
+
+        <!-- Add Member Modal -->
+        <div id="addMemberModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+                <div class="px-6 py-4 border-b border-pandata-gray-light">
+                    <h3 class="text-lg font-semibold text-pandata-charcoal">
+                        <i class="fas fa-user-plus mr-2 text-pandata-red"></i>
+                        Add Team Member
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-pandata-charcoal mb-1">Email Address *</label>
+                            <input type="email" id="newMemberEmail" placeholder="colleague@company.com"
+                                   class="w-full px-4 py-2 border border-pandata-gray-light rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-pandata-charcoal mb-1">Name (optional)</label>
+                            <input type="text" id="newMemberName" placeholder="First Last"
+                                   class="w-full px-4 py-2 border border-pandata-gray-light rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent">
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="sendInviteImmediately" checked
+                                   class="w-4 h-4 text-pandata-red border-pandata-gray-light rounded focus:ring-pandata-red">
+                            <label for="sendInviteImmediately" class="ml-2 text-sm text-pandata-gray-dark">
+                                Send invitation email immediately
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-pandata-gray-light flex justify-end gap-3">
+                    <button onclick="closeAddMemberModal()"
+                            class="px-4 py-2 text-pandata-gray-dark hover:text-pandata-charcoal transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="addMember()" id="addMemberSubmitBtn"
+                            class="px-4 py-2 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark transition-colors">
+                        Add Member
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -228,6 +271,20 @@
             document.getElementById('statSubmitted').textContent = data.stats.submitted;
             document.getElementById('statInvited').textContent = data.stats.invited;
             document.getElementById('statNotInvited').textContent = data.stats.notInvited;
+
+            // Disable "Send Invitations" button if no one left to invite
+            const sendInvBtn = document.getElementById('sendInvitationsBtn');
+            if (data.stats.notInvited === 0) {
+                sendInvBtn.disabled = true;
+                sendInvBtn.classList.remove('bg-pandata-red', 'hover:bg-pandata-red-dark');
+                sendInvBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+                sendInvBtn.title = 'All team members have been invited';
+            } else {
+                sendInvBtn.disabled = false;
+                sendInvBtn.classList.add('bg-pandata-red', 'hover:bg-pandata-red-dark');
+                sendInvBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                sendInvBtn.title = '';
+            }
 
             // Drive link (deprecated - kept for backwards compatibility)
             // if (data.event.googleDriveFolderUrl) {
@@ -398,11 +455,57 @@
             btn.innerHTML = '<i class="fas fa-bell mr-2"></i>Remind All Pending';
         }
 
-        function copySubmitLink() {
-            if (!eventData) return;
-            const url = `${window.location.origin}/submit/${eventData.event.id}`;
-            navigator.clipboard.writeText(url);
-            showNotification('Link copied to clipboard!');
+        function openAddMemberModal() {
+            document.getElementById('addMemberModal').classList.remove('hidden');
+            document.getElementById('newMemberEmail').value = '';
+            document.getElementById('newMemberName').value = '';
+            document.getElementById('sendInviteImmediately').checked = true;
+            document.getElementById('newMemberEmail').focus();
+        }
+
+        function closeAddMemberModal() {
+            document.getElementById('addMemberModal').classList.add('hidden');
+        }
+
+        async function addMember() {
+            const email = document.getElementById('newMemberEmail').value.trim();
+            const name = document.getElementById('newMemberName').value.trim();
+            const sendInvite = document.getElementById('sendInviteImmediately').checked;
+
+            if (!email) {
+                showNotification('Please enter an email address', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('addMemberSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
+
+            try {
+                const response = await fetch(`/api/admin/${accessCode}/add-member`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, name, sendInvite })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    closeAddMemberModal();
+                    if (result.inviteSent) {
+                        showNotification(`Added ${result.memberName} and sent invitation!`);
+                    } else {
+                        showNotification(`Added ${result.memberName} to the list`);
+                    }
+                    loadData(); // Refresh the table
+                } else {
+                    showNotification(result.error || 'Error adding member', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = 'Add Member';
         }
 
         function downloadAll() {

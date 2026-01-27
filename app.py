@@ -25,12 +25,12 @@ try:
 except ImportError:
     DRIVE_AVAILABLE = False
 
-# Miro API configuration
+load_dotenv()
+
+# Miro API configuration (after load_dotenv to read from .env file)
 MIRO_ACCESS_TOKEN = os.getenv('MIRO_ACCESS_TOKEN', '')
 MIRO_TEAM_ID = os.getenv('MIRO_TEAM_ID', '')
 MIRO_API_BASE = 'https://api.miro.com/v2'
-
-load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24).hex())
@@ -677,6 +677,85 @@ def get_admin_data(access_code):
     })
 
 
+@app.route('/api/admin/<access_code>/add-member', methods=['POST'])
+def add_team_member(access_code):
+    """Add a new team member to the event"""
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    # Get event by access code
+    event = supabase.table('farewell_events').select('*').eq('access_code', access_code).limit(1).execute()
+    if not event.data or len(event.data) == 0:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    event_data = event.data[0]
+    event_id = event_data['id']
+    
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    name = data.get('name', '').strip()
+    send_invite = data.get('sendInvite', False)
+    
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    # Check if this email is the honoree
+    if email == event_data['honoree_email'].lower():
+        return jsonify({'error': 'Cannot add the honoree as a team member'}), 400
+    
+    # Check if member already exists
+    existing = supabase.table('team_members').select('*').eq('event_id', event_id).eq('email', email).limit(1).execute()
+    if existing.data and len(existing.data) > 0:
+        return jsonify({'error': 'This email is already in the team list'}), 400
+    
+    # Create new team member
+    member_name = name if name else email.split('@')[0].replace('.', ' ').title()
+    new_member = {
+        'event_id': event_id,
+        'name': member_name,
+        'email': email
+    }
+    
+    result = supabase.table('team_members').insert(new_member).execute()
+    member_id = result.data[0]['id']
+    
+    invite_sent = False
+    
+    # Send invitation if requested
+    if send_invite:
+        try:
+            submit_url = f"{request.host_url}submit/{event_id}?email={email}"
+            honoree_first_name = event_data['honoree_name'].split()[0]
+            deadline = event_data['deadline']
+            formatted_deadline = datetime.fromisoformat(deadline.replace('Z', '+00:00')).strftime('%A, %d/%m')
+            organizer_first_name = event_data['organizer_name'].split()[0]
+            
+            subject = f"Farewell Card for {honoree_first_name} 🎉"
+            body = f"""Hi {member_name.split()[0]},
+
+It is {honoree_first_name}'s last day on {formatted_deadline}, and so we would like you to contribute to their farewell card.
+
+Please upload or draft your message via our new farewell app:
+{submit_url}
+
+This is your personalized link – no login required!
+
+Organized by {organizer_first_name}"""
+            
+            if send_email(email, subject, body):
+                supabase.table('team_members').update({'invited_at': datetime.utcnow().isoformat()}).eq('id', member_id).execute()
+                invite_sent = True
+        except Exception as e:
+            app.logger.error(f'Error sending invitation: {str(e)}')
+    
+    return jsonify({
+        'success': True,
+        'memberId': member_id,
+        'memberName': member_name,
+        'inviteSent': invite_sent
+    })
+
+
 @app.route('/api/admin/<access_code>/download-all')
 def download_all_submissions(access_code):
     """Download all submissions as a ZIP file"""
@@ -793,6 +872,22 @@ def download_all_submissions(access_code):
 # MIRO COLLAGE INTEGRATION
 # ============================================
 
+import random
+import math
+
+# Sticky note colors - rotating through these for variety (like in Josef/Lorenzo/Mascha examples)
+STICKY_COLORS = [
+    'light_yellow',   # Gelb
+    'yellow',         # Kräftiges Gelb
+    'light_pink',     # Rosa
+    'pink',           # Pink
+    'violet',         # Lila
+    'light_green',    # Hellgrün
+    'light_blue',     # Hellblau
+    'cyan',           # Türkis
+]
+
+
 def miro_api_request(method, endpoint, data=None):
     """Make a request to the Miro API"""
     if not MIRO_ACCESS_TOKEN:
@@ -828,8 +923,8 @@ def create_miro_board(name: str) -> dict:
     return miro_api_request('POST', '/boards', data)
 
 
-def add_miro_image(board_id: str, image_url: str, x: float, y: float, width: int = 300) -> dict:
-    """Add an image to a Miro board from URL"""
+def add_miro_image(board_id: str, image_url: str, x: float, y: float, width: int = 300, rotation: float = 0) -> dict:
+    """Add an image to a Miro board from URL with optional rotation"""
     data = {
         'data': {
             'url': image_url
@@ -840,13 +935,14 @@ def add_miro_image(board_id: str, image_url: str, x: float, y: float, width: int
             'origin': 'center'
         },
         'geometry': {
-            'width': width
+            'width': width,
+            'rotation': rotation
         }
     }
     return miro_api_request('POST', f'/boards/{board_id}/images', data)
 
 
-def add_miro_sticky_note(board_id: str, content: str, x: float, y: float, color: str = 'light_yellow') -> dict:
+def add_miro_sticky_note(board_id: str, content: str, x: float, y: float, color: str = 'light_yellow', width: int = 199) -> dict:
     """Add a sticky note to a Miro board"""
     # Miro sticky notes have a max content length
     truncated_content = content[:1000] if content else ''
@@ -863,19 +959,23 @@ def add_miro_sticky_note(board_id: str, content: str, x: float, y: float, color:
             'x': x,
             'y': y,
             'origin': 'center'
+        },
+        'geometry': {
+            'width': width
         }
     }
     return miro_api_request('POST', f'/boards/{board_id}/sticky_notes', data)
 
 
-def add_miro_text(board_id: str, content: str, x: float, y: float, font_size: int = 24) -> dict:
+def add_miro_text(board_id: str, content: str, x: float, y: float, font_size: int = 24, color: str = '#1a1a1a') -> dict:
     """Add a text element to a Miro board"""
     data = {
         'data': {
             'content': content
         },
         'style': {
-            'fontSize': str(font_size)
+            'fontSize': str(font_size),
+            'color': color
         },
         'position': {
             'x': x,
@@ -909,6 +1009,56 @@ def add_miro_shape(board_id: str, shape: str, x: float, y: float, width: int, he
     return miro_api_request('POST', f'/boards/{board_id}/shapes', data)
 
 
+def calculate_collage_layout(num_items: int, board_width: int = 3500, board_height: int = 2500):
+    """
+    Calculate positions for all elements in a collage-style layout.
+    Returns a list of (x, y, rotation) tuples for each item.
+    
+    The layout uses zones and semi-random placement for a natural collage feel.
+    """
+    positions = []
+    
+    # Define zones (left, center-left, center-right, right)
+    num_zones = 4
+    zone_width = board_width / num_zones
+    
+    # Calculate rows needed
+    items_per_row = num_zones
+    num_rows = math.ceil(num_items / items_per_row)
+    row_height = min(500, (board_height - 200) / max(num_rows, 1))  # Leave space for title
+    
+    for i in range(num_items):
+        # Determine zone and row
+        zone = i % num_zones
+        row = i // num_zones
+        
+        # Base position (center of zone)
+        base_x = (zone * zone_width) + (zone_width / 2)
+        base_y = 300 + (row * row_height)  # Start below title
+        
+        # Add randomness for natural collage feel
+        # Random offset within zone (up to 30% of zone width)
+        x_offset = random.uniform(-zone_width * 0.2, zone_width * 0.2)
+        y_offset = random.uniform(-row_height * 0.15, row_height * 0.15)
+        
+        # Random rotation (-8 to +8 degrees for natural look)
+        rotation = random.uniform(-8, 8)
+        
+        positions.append({
+            'x': base_x + x_offset,
+            'y': base_y + y_offset,
+            'rotation': rotation,
+            'zone': zone
+        })
+    
+    return positions
+
+
+def get_sticky_color(index: int) -> str:
+    """Get a sticky note color, rotating through the palette"""
+    return STICKY_COLORS[index % len(STICKY_COLORS)]
+
+
 @app.route('/api/admin/<access_code>/create-miro-collage', methods=['POST'])
 def create_miro_collage(access_code):
     """Create a Miro board collage with all submitted photos and messages"""
@@ -935,31 +1085,55 @@ def create_miro_collage(access_code):
     
     try:
         # Create Miro board
-        board = create_miro_board(f'Farewell Card - {honoree_name}')
+        board = create_miro_board(f'Farewell {honoree_name}')
         board_id = board['id']
         board_url = board['viewLink']
         
-        # Layout configuration
-        CARD_WIDTH = 300
-        CARD_HEIGHT = 400
-        CARDS_PER_ROW = 4
-        PADDING = 50
-        START_Y = 200  # Leave space for header
+        # Board dimensions
+        BOARD_WIDTH = 3500
+        BOARD_HEIGHT = 2500
+        PHOTO_WIDTH = 280
+        STICKY_WIDTH = 220
         
-        # Add header
-        add_miro_shape(board_id, 'rectangle', 600, 0, 1400, 100, '#fa4f4f')
-        add_miro_text(board_id, f'<strong>Farewell, {honoree_name}!</strong>', 600, 0, 48)
+        # =====================
+        # 1. ADD TITLE (large, centered, red)
+        # =====================
+        title_text = f'<strong>FAREWELL {honoree_name.upper()}!</strong>'
+        add_miro_text(board_id, title_text, BOARD_WIDTH / 2, 80, font_size=72, color='#fa4f4f')
         
-        # Track position
-        current_x = 0
-        current_y = START_Y
-        items_in_row = 0
+        # =====================
+        # 2. CALCULATE LAYOUT
+        # =====================
+        # Count total items (each submission = 1 slot, but may have multiple photos)
+        num_submissions = len(submissions.data)
+        positions = calculate_collage_layout(num_submissions, BOARD_WIDTH, BOARD_HEIGHT)
         
-        for submission in submissions.data:
+        # Shuffle submissions for more random distribution
+        shuffled_submissions = list(submissions.data)
+        random.shuffle(shuffled_submissions)
+        
+        # Track stats
+        photos_added = 0
+        notes_added = 0
+        messages_added = 0
+        
+        # =====================
+        # 3. ADD CONTENT FOR EACH SUBMISSION
+        # =====================
+        for idx, submission in enumerate(shuffled_submissions):
             member_name = submission['team_members']['name'] if submission.get('team_members') else 'Anonymous'
             message = submission.get('message', '')
             file_url = submission.get('file_url')  # Handwritten note
             photo_urls_json = submission.get('photo_urls')
+            
+            # Get position for this submission
+            pos = positions[idx]
+            base_x = pos['x']
+            base_y = pos['y']
+            base_rotation = pos['rotation']
+            
+            # Get color for this submission's sticky note
+            sticky_color = get_sticky_color(idx)
             
             # Parse photo URLs
             photo_urls = []
@@ -969,53 +1143,95 @@ def create_miro_collage(access_code):
                 except:
                     pass
             
-            # Calculate position for this submission
-            x_pos = current_x * (CARD_WIDTH + PADDING)
-            y_pos = current_y
+            # =====================
+            # 3a. ADD PHOTOS (with slight offset for stacking effect)
+            # =====================
+            all_images = []
             
-            # Add all photos from this submission
-            all_photos = photo_urls.copy()
-            if file_url and file_url.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                all_photos.insert(0, file_url)  # Add handwritten note as first photo
+            # Add handwritten note as image if it's an image file
+            if file_url:
+                if file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                    all_images.append({'url': file_url, 'type': 'handwritten'})
+                # If it's a PDF, we'll add it separately or skip (Miro doesn't support PDF images directly)
             
             # Add photos
-            for photo_idx, photo_url in enumerate(all_photos[:3]):  # Max 3 photos per person
-                photo_x = x_pos + (photo_idx * 100)  # Offset each photo slightly
-                photo_y = y_pos + (photo_idx * 30)
+            for photo_url in photo_urls:
+                all_images.append({'url': photo_url, 'type': 'photo'})
+            
+            # Place images with stacking effect (max 4 per submission to avoid clutter)
+            for img_idx, img in enumerate(all_images[:4]):
+                # Offset each subsequent image slightly
+                img_x = base_x + (img_idx * 40) - 60
+                img_y = base_y + (img_idx * 25) - 40
+                
+                # Vary rotation for each image
+                img_rotation = base_rotation + random.uniform(-5, 5)
+                
+                # Vary size slightly
+                img_width = PHOTO_WIDTH + random.randint(-30, 30)
                 
                 try:
-                    add_miro_image(board_id, photo_url, photo_x, photo_y, 250)
+                    add_miro_image(board_id, img['url'], img_x, img_y, img_width, img_rotation)
+                    photos_added += 1
                 except Exception as e:
-                    app.logger.warning(f'Could not add image {photo_url}: {str(e)}')
+                    app.logger.warning(f'Could not add image {img["url"]}: {str(e)}')
             
-            # Add sticky note with message and name
-            sticky_content = f'<strong>{member_name}</strong>'
+            # =====================
+            # 3b. ADD HANDWRITTEN NOTE (file_url) as separate image if present
+            # =====================
+            if file_url and file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                # Already added above
+                notes_added += 1
+            
+            # =====================
+            # 3c. ADD STICKY NOTE WITH MESSAGE
+            # =====================
             if message:
-                sticky_content += f'<br><br>"{message}"'
+                # Position sticky note to the side or below photos
+                sticky_offset_x = random.choice([-1, 1]) * random.randint(150, 220)
+                sticky_offset_y = random.randint(100, 180)
+                
+                sticky_x = base_x + sticky_offset_x
+                sticky_y = base_y + sticky_offset_y
+                
+                # Format message with name
+                sticky_content = f'<strong>{member_name}</strong><br><br>"{message}"'
+                
+                try:
+                    add_miro_sticky_note(board_id, sticky_content, sticky_x, sticky_y, sticky_color, STICKY_WIDTH)
+                    messages_added += 1
+                except Exception as e:
+                    app.logger.warning(f'Could not add sticky note: {str(e)}')
             
-            # Position sticky note below photos
-            sticky_y = y_pos + 200
-            add_miro_sticky_note(board_id, sticky_content, x_pos, sticky_y, 'light_yellow')
-            
-            # Move to next position
-            items_in_row += 1
-            current_x += 1
-            
-            if items_in_row >= CARDS_PER_ROW:
-                items_in_row = 0
-                current_x = 0
-                current_y += CARD_HEIGHT + PADDING
+            # If no photos but has a message, still add the name label
+            elif not all_images and not message:
+                # Add just a name label
+                try:
+                    add_miro_sticky_note(board_id, f'<strong>{member_name}</strong>', base_x, base_y, sticky_color, 150)
+                except Exception as e:
+                    app.logger.warning(f'Could not add name label: {str(e)}')
         
-        # Update event with Miro board URL
-        supabase.table('farewell_events').update({
-            'miro_board_url': board_url
-        }).eq('id', event_id).execute()
+        # =====================
+        # 4. UPDATE DATABASE
+        # =====================
+        try:
+            supabase.table('farewell_events').update({
+                'miro_board_url': board_url
+            }).eq('id', event_id).execute()
+        except Exception as db_e:
+            # Column might not exist yet, that's okay
+            app.logger.warning(f'Could not save miro_board_url: {str(db_e)}')
         
         return jsonify({
             'success': True,
             'boardUrl': board_url,
             'boardId': board_id,
-            'itemCount': len(submissions.data)
+            'stats': {
+                'submissions': num_submissions,
+                'photosAdded': photos_added,
+                'notesAdded': notes_added,
+                'messagesAdded': messages_added
+            }
         })
         
     except Exception as e:
