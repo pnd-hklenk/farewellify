@@ -171,35 +171,6 @@
             </div>
         </div>
 
-        <!-- Email Templates Section -->
-        <div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="px-6 py-4 border-b border-pandata-gray-light bg-white">
-                <h2 class="text-lg font-semibold text-pandata-charcoal">
-                    <i class="fas fa-envelope-open-text mr-2 text-pandata-red"></i>
-                    Email Templates (Copy & Send Manually)
-                </h2>
-            </div>
-            <div class="p-6 space-y-6">
-                <div>
-                    <h3 class="font-medium text-gray-700 mb-2">Initial Invitation Email</h3>
-                    <div class="bg-gray-50 p-4 rounded-lg relative">
-                        <button onclick="copyTemplate('invitationTemplate')" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <pre id="invitationTemplate" class="text-sm text-gray-600 whitespace-pre-wrap">Loading...</pre>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="font-medium text-gray-700 mb-2">Reminder Email</h3>
-                    <div class="bg-gray-50 p-4 rounded-lg relative">
-                        <button onclick="copyTemplate('reminderTemplate')" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <pre id="reminderTemplate" class="text-sm text-gray-600 whitespace-pre-wrap">Loading...</pre>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -327,37 +298,6 @@
                 }).join('');
             }
 
-            // Email templates - these match what the Send buttons actually send
-            const submitUrl = `${window.location.origin}/submit/${data.event.id}`;
-            const honoreeFirstName = data.event.honoreeName.split(' ')[0];
-            const organizerFirstName = data.event.organizerName.split(' ')[0];
-            const formattedDeadline = deadline.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' }).replace(',', ',');
-
-            document.getElementById('invitationTemplate').textContent = 
-`Subject: Farewell Card for ${honoreeFirstName} 🎉
-
-Hi [FirstName],
-
-It is ${honoreeFirstName}'s last day on ${formattedDeadline}, and so we would like you to contribute to their farewell card.
-
-Please upload or draft your message via our new farewell app:
-${submitUrl}?email=[email]
-
-This is your personalized link – no login required!
-
-Organized by ${organizerFirstName}`;
-
-            document.getElementById('reminderTemplate').textContent = 
-`Subject: Reminder: Farewell Card for ${honoreeFirstName} ⏰
-
-Hi [FirstName],
-
-Just a friendly reminder: ${honoreeFirstName}'s last day is on ${formattedDeadline}, and we haven't received your contribution to their farewell card yet.
-
-Please upload or draft your message via our farewell app:
-${submitUrl}?email=[email]
-
-This is your personalized link – no login required!`;
         }
 
         function showNotification(message, type = 'success') {
@@ -427,12 +367,6 @@ This is your personalized link – no login required!`;
             const url = `${window.location.origin}/submit/${eventData.event.id}`;
             navigator.clipboard.writeText(url);
             showNotification('Link copied to clipboard!');
-        }
-
-        function copyTemplate(elementId) {
-            const text = document.getElementById(elementId).textContent;
-            navigator.clipboard.writeText(text);
-            showNotification('Template copied to clipboard!');
         }
 
         function downloadAll() {
