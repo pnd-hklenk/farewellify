@@ -312,40 +312,37 @@
                 `).join('');
             }
 
-            // Email templates
+            // Email templates - these match what the Send buttons actually send
             const submitUrl = `${window.location.origin}/submit/${data.event.id}`;
+            const honoreeFirstName = data.event.honoreeName.split(' ')[0];
+            const organizerFirstName = data.event.organizerName.split(' ')[0];
+            const formattedDeadline = deadline.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: '2-digit' }).replace(',', ',');
 
             document.getElementById('invitationTemplate').textContent = 
-`Subject: Farewell Card for ${data.event.honoreeName}
+`Subject: Farewell Card for ${honoreeFirstName} 🎉
 
-Hi [Name],
+Hi [FirstName],
 
-${data.event.message || `We're organizing a farewell card for ${data.event.honoreeName}!`}
+It is ${honoreeFirstName}'s last day on ${formattedDeadline}, and so we would like you to contribute to their farewell card.
 
-Click your personalized link to submit your message:
-${submitUrl}?email=[PERSON_EMAIL]
+Please upload or draft your message via our new farewell app:
+${submitUrl}?email=[email]
 
-(Each person gets their own link - no login required!)
+This is your personalized link – no login required!
 
-Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-
-Best,
-${data.event.organizerName}`;
+Organized by ${organizerFirstName}`;
 
             document.getElementById('reminderTemplate').textContent = 
-`Subject: ⏰ Reminder - Farewell Card for ${data.event.honoreeName}
+`Subject: Reminder: Farewell Card for ${honoreeFirstName} ⏰
 
-Hi [Name],
+Hi [FirstName],
 
-Friendly reminder: we're still collecting messages for ${data.event.honoreeName}'s farewell card.
+Just a friendly reminder: ${honoreeFirstName}'s last day is on ${formattedDeadline}, and we haven't received your contribution to their farewell card yet.
 
-We haven't received your contribution yet - it would mean a lot!
+Please upload or draft your message via our farewell app:
+${submitUrl}?email=[email]
 
-Submit your message here: ${submitUrl}
-
-Deadline: ${deadline.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-
-Thank you!`;
+This is your personalized link – no login required!`;
         }
 
         function showNotification(message, type = 'success') {
