@@ -27,12 +27,16 @@
          ▼                                    ▼
 ┌─────────────────────┐          ┌────────────────────────────────────┐
 │      SUPABASE       │          │         EXTERNAL SERVICES          │
-│    (PostgreSQL)     │          ├────────────────────────────────────┤
-├─────────────────────┤          │  SMTP EMAIL                        │
-│ - farewell_events   │          │  - Send invitations & reminders    │
-│ - team_members      │          │  - Gmail or any SMTP provider      │
-│ - submissions       │          │  - Configured via .env             │
-│ - employees         │          │                                    │
+├─────────────────────┤          ├────────────────────────────────────┤
+│  PostgreSQL:        │          │  SMTP EMAIL                        │
+│  - farewell_events  │          │  - Send invitations & reminders    │
+│  - team_members     │          │  - Gmail or any SMTP provider      │
+│  - submissions      │          │  - Configured via .env             │
+│  - employees        │          │                                    │
+├─────────────────────┤          │                                    │
+│  Storage:           │          │                                    │
+│  - uploads bucket   │          │                                    │
+│    (photos, notes)  │          │                                    │
 └─────────────────────┘          └────────────────────────────────────┘
 ```
 
@@ -156,8 +160,24 @@ The organizer CAN participate in the farewell card:
 
 ## File Storage
 
-### Local Uploads
-- Directory: `uploads/`
-- Files renamed to: `{event_id}_{uuid}.{ext}` or `{event_id}_msg_{uuid}.{ext}` for handwritten notes
-- Max size: 50MB
-- Allowed types: PDF, JPG, PNG
+### Supabase Storage
+Files are stored in Supabase Storage for persistence across deployments.
+
+| Setting | Value |
+|---------|-------|
+| Bucket | `uploads` |
+| Public | Yes |
+| Max size | 50MB |
+| Allowed types | JPEG, PNG, GIF, PDF |
+
+File naming convention:
+- Photos: `{event_id}_photo_{uuid}.{ext}`
+- Handwritten notes: `{event_id}_msg_{uuid}.{ext}`
+
+Storage policies allow public read/write access to the `uploads` bucket.
+
+### Download ZIP
+The admin dashboard provides a "Download ZIP" button that:
+1. Fetches all files from Supabase Storage
+2. Creates a ZIP with all photos and notes
+3. Includes `00_messages_summary.txt` with all text messages
