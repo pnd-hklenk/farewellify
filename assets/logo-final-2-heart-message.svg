@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Farewellify Logo 2: Herz-Nachricht mit Pandata -->
+  
+  <!-- Weisser Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="80" r="55" fill="#fa4f4f"/>
+  
+  <!-- Sprechblase (weiss) -->
+  <g transform="translate(58, 42)">
+    <path d="M42 5 C24 5 10 15 10 28 C10 38 18 46 30 48 L27 55 L38 48 C53 47 65 38 65 28 C65 15 52 5 42 5 Z" 
+          fill="white"/>
+    <!-- Herz in der Blase -->
+    <path d="M42 18 C39 14 35 14 35 19 C35 23 42 30 42 30 C42 30 49 23 49 19 C49 14 45 14 42 18 Z" 
+          fill="#fa4f4f"/>
+  </g>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="158" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+  
+  <!-- "by pandata" Text -->
+  <text x="100" y="178" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="9" fill="#999">
+    by pandata
+  </text>
+</svg>

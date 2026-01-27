@@ -6,6 +6,7 @@ import uuid
 import smtplib
 import zipfile
 import io
+import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -343,7 +344,7 @@ def submit_page(event_id):
 
 @app.route('/api/events/<event_id>')
 def get_event(event_id):
-    """Get event details (public info only) + team member info if email provided"""
+    """Get event details (public info only) + team member info and existing submission if email provided"""
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
     
@@ -353,13 +354,23 @@ def get_event(event_id):
     
     result = event.data[0]
     
-    # If email parameter provided, look up the team member's name
+    # If email parameter provided, look up the team member's name and existing submission
     email = request.args.get('email')
     if email:
-        member = supabase.table('team_members').select('name, email').eq('event_id', event_id).eq('email', email).limit(1).execute()
+        member = supabase.table('team_members').select('id, name, email').eq('event_id', event_id).eq('email', email).limit(1).execute()
         if member.data and len(member.data) > 0:
             result['team_member_name'] = member.data[0]['name']
             result['team_member_email'] = member.data[0]['email']
+            
+            # Check for existing submission
+            submission = supabase.table('submissions').select('*').eq('event_id', event_id).eq('team_member_id', member.data[0]['id']).limit(1).execute()
+            if submission.data and len(submission.data) > 0:
+                result['existing_submission'] = {
+                    'message': submission.data[0].get('message'),
+                    'file_url': submission.data[0].get('file_url'),
+                    'photo_urls': submission.data[0].get('photo_urls'),  # New field for multiple photos
+                    'submitted_at': submission.data[0].get('submitted_at')
+                }
     
     return jsonify(result)
 
@@ -374,15 +385,23 @@ def create_submission():
     email = request.form.get('email')
     name = request.form.get('name')
     message = request.form.get('message')
+    existing_photos = request.form.get('existingPhotos')  # JSON array of existing photo URLs to keep
     
     if not event_id or not email:
         return jsonify({'error': 'Missing required fields'}), 400
     
-    # Handle file uploads (can have messageFile and/or file)
+    # Handle file uploads
     file_url = None
-    message_file_url = None
+    photo_urls = []
     
-    # Handle handwritten note (messageFile)
+    # Keep existing photos if specified
+    if existing_photos:
+        try:
+            photo_urls = json.loads(existing_photos)
+        except:
+            photo_urls = []
+    
+    # Handle handwritten note (messageFile) - this becomes file_url
     if 'messageFile' in request.files:
         msg_file = request.files['messageFile']
         if msg_file and msg_file.filename and allowed_file(msg_file.filename):
@@ -390,9 +409,19 @@ def create_submission():
             unique_filename = f"{event_id}_msg_{uuid.uuid4().hex[:8]}.{ext}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             msg_file.save(filepath)
-            message_file_url = f"/uploads/{unique_filename}"
+            file_url = f"/uploads/{unique_filename}"
     
-    # Handle photo file
+    # Handle multiple photo files (up to 15)
+    photo_files = request.files.getlist('photos')
+    for photo in photo_files[:15]:  # Limit to 15 photos
+        if photo and photo.filename and allowed_file(photo.filename):
+            ext = photo.filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{event_id}_photo_{uuid.uuid4().hex[:8]}.{ext}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            photo.save(filepath)
+            photo_urls.append(f"/uploads/{unique_filename}")
+    
+    # Legacy: Handle single 'file' upload (for backwards compatibility)
     if 'file' in request.files:
         file = request.files['file']
         if file and file.filename and allowed_file(file.filename):
@@ -400,12 +429,7 @@ def create_submission():
             unique_filename = f"{event_id}_{uuid.uuid4().hex[:8]}.{ext}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             file.save(filepath)
-            file_url = f"/uploads/{unique_filename}"
-    
-    # Use messageFile as primary file_url if no photo but has message file
-    if not file_url and message_file_url:
-        file_url = message_file_url
-        message_file_url = None
+            photo_urls.append(f"/uploads/{unique_filename}")
     
     # Find the team member
     member = supabase.table('team_members').select('*').eq('event_id', event_id).eq('email', email).limit(1).execute()
@@ -429,11 +453,13 @@ def create_submission():
         'event_id': event_id,
         'team_member_id': member_id,
         'message': message if message else None,
-        'file_url': file_url
+        'file_url': file_url,
+        'photo_urls': json.dumps(photo_urls) if photo_urls else None
     }
     
     if existing.data:
-        # Update existing submission (keep old file if no new one)
+        # Update existing submission
+        # Keep old file_url if no new one uploaded
         if not file_url and existing.data[0].get('file_url'):
             submission_data['file_url'] = existing.data[0]['file_url']
         supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
@@ -509,6 +535,14 @@ def get_admin_data(access_code):
     member_list = []
     for member in members.data:
         submission = submitted_ids.get(member['id'])
+        # Parse photo_urls JSON if present
+        photo_urls = []
+        if submission and submission.get('photo_urls'):
+            try:
+                photo_urls = json.loads(submission['photo_urls'])
+            except:
+                pass
+        
         member_list.append({
             'id': member['id'],
             'name': member['name'],
@@ -518,7 +552,8 @@ def get_admin_data(access_code):
             'hasSubmitted': member['id'] in submitted_ids,
             'submittedAt': submission['submitted_at'] if submission else None,
             'message': submission['message'] if submission else None,
-            'fileUrl': submission['file_url'] if submission else None
+            'fileUrl': submission['file_url'] if submission else None,
+            'photoUrls': photo_urls
         })
     
     # Calculate detailed stats
@@ -579,27 +614,42 @@ def download_all_submissions(access_code):
         for idx, submission in enumerate(submissions.data, 1):
             member_name = submission['team_members']['name'] if submission.get('team_members') else 'Unknown'
             member_email = submission['team_members']['email'] if submission.get('team_members') else ''
+            safe_name = member_name.replace(' ', '_').replace('/', '-')
             
             # Add message to summary
             summary_lines.append(f"From: {member_name} ({member_email})")
             if submission.get('message'):
                 summary_lines.append(f'"{submission["message"]}"')
-            if submission.get('file_url'):
-                summary_lines.append(f"File: {submission['file_url']}")
-            summary_lines.append("")
             
-            # Add file to ZIP if exists
+            # Add handwritten note file to ZIP if exists
             if submission.get('file_url'):
                 file_path = submission['file_url'].lstrip('/')
                 full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
+                summary_lines.append(f"Handwritten note: {submission['file_url']}")
                 
                 if os.path.exists(full_path):
-                    # Get original extension
                     ext = os.path.splitext(full_path)[1]
-                    # Create clean filename
-                    safe_name = member_name.replace(' ', '_').replace('/', '-')
-                    zip_filename = f"{idx:02d}_{safe_name}{ext}"
+                    zip_filename = f"{idx:02d}_{safe_name}_note{ext}"
                     zip_file.write(full_path, zip_filename)
+            
+            # Add all photos to ZIP
+            if submission.get('photo_urls'):
+                try:
+                    photo_urls = json.loads(submission['photo_urls'])
+                    for photo_idx, photo_url in enumerate(photo_urls, 1):
+                        file_path = photo_url.lstrip('/')
+                        full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), file_path)
+                        
+                        if os.path.exists(full_path):
+                            ext = os.path.splitext(full_path)[1]
+                            zip_filename = f"{idx:02d}_{safe_name}_photo{photo_idx:02d}{ext}"
+                            zip_file.write(full_path, zip_filename)
+                    
+                    summary_lines.append(f"Photos: {len(photo_urls)}")
+                except:
+                    pass
+            
+            summary_lines.append("")
         
         # Add summary file
         summary_content = "\n".join(summary_lines)

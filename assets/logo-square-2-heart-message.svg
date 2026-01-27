@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Logo Square 2: Herz-Nachricht -->
+  
+  <!-- Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="85" r="60" fill="#fa4f4f"/>
+  
+  <!-- Sprechblase (weiss) -->
+  <g transform="translate(55, 45)">
+    <path d="M45 5 C25 5 10 17 10 32 C10 43 19 52 33 54 L29 62 L41 54 C58 53 70 43 70 32 C70 17 58 5 45 5 Z" 
+          fill="white"/>
+    <!-- Herz in der Blase -->
+    <path d="M45 22 C42 18 37 18 37 24 C37 28 45 36 45 36 C45 36 53 28 53 24 C53 18 48 18 45 22 Z" 
+          fill="#fa4f4f"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="170" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="24" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+</svg>

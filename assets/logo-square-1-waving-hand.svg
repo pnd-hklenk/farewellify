@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Logo Square 1: Winkende Hand -->
+  
+  <!-- Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="85" r="60" fill="#fa4f4f"/>
+  
+  <!-- Winkende Hand (weiss) -->
+  <g transform="translate(70, 45)">
+    <path d="M25 35c-1.5-0.8-2.2-2.2-2.2-3.7v-15c0-1.5 1.5-3 3-3s3 1.5 3 3v10.5" fill="white"/>
+    <path d="M29 25.5v-13.5c0-1.5 1.5-3 3-3s3 1.5 3 3v13.5" fill="white"/>
+    <path d="M35 25.5v-10.5c0-1.5 1.5-3 3-3s3 1.5 3 3v10.5" fill="white"/>
+    <path d="M41 28.5v-7.5c0-1.5 1.5-3 3-3s3 1.5 3 3v7.5" fill="white"/>
+    <ellipse cx="35" cy="41" rx="14" ry="11" fill="white"/>
+    <!-- Bewegungslinien -->
+    <path d="M15 15 L10 11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <path d="M13 22 L7 21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <path d="M15 30 L9 31" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="170" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="24" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+</svg>

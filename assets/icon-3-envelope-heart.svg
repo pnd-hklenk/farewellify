@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Icon: Briefumschlag mit Herz -->
+  <circle cx="50" cy="50" r="48" fill="#fa4f4f"/>
+  <g transform="translate(18, 28)">
+    <rect x="2" y="12" width="60" height="38" rx="3" fill="white"/>
+    <path d="M2 16 L32 34 L62 16" fill="none" stroke="#fa4f4f" stroke-width="1.5" opacity="0.4"/>
+    <path d="M32 2 C28 -3 22 -3 22 3 C22 8 32 16 32 16 C32 16 42 8 42 3 C42 -3 36 -3 32 2 Z" fill="white"/>
+  </g>
+</svg>

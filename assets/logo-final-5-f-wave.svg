@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Farewellify Logo 5: Minimalistisches F mit Welle -->
+  
+  <!-- Weisser Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="80" r="55" fill="#fa4f4f"/>
+  
+  <!-- Grosses F -->
+  <text x="88" y="102" font-family="'Open Sans', Arial, sans-serif" font-size="60" font-weight="700" fill="white">f</text>
+  
+  <!-- Winkende Welle -->
+  <path d="M112 48 Q120 42 128 48 Q136 55 128 62" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="158" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+  
+  <!-- "by pandata" Text -->
+  <text x="100" y="178" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="9" fill="#999">
+    by pandata
+  </text>
+</svg>

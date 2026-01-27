@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Farewellify Logo 4: Papierflieger -->
+  
+  <!-- Weisser Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="80" r="55" fill="#fa4f4f"/>
+  
+  <!-- Papierflieger -->
+  <g transform="translate(52, 45)">
+    <!-- Flugbahn -->
+    <path d="M12 50 Q25 32 38 40 Q52 50 48 36 Q44 22 58 26" 
+          fill="none" stroke="white" stroke-width="2.2" stroke-dasharray="4,3" opacity="0.7"/>
+    
+    <!-- Flieger -->
+    <g transform="translate(54, 18) rotate(-35)">
+      <path d="M0 9 L27 0 L7 9 L27 18 Z" fill="white"/>
+      <path d="M7 9 L27 0 L27 18 Z" fill="white" opacity="0.7"/>
+    </g>
+  </g>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="158" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+  
+  <!-- "by pandata" Text -->
+  <text x="100" y="178" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="9" fill="#999">
+    by pandata
+  </text>
+</svg>

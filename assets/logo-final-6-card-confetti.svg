@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Farewellify Logo 6: Karte mit Konfetti -->
+  
+  <!-- Weisser Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="80" r="55" fill="#fa4f4f"/>
+  
+  <!-- Karte -->
+  <g transform="translate(62, 42)">
+    <!-- Karten-Schatten -->
+    <rect x="8" y="10" width="38" height="48" rx="3" fill="white" opacity="0.3"/>
+    <!-- Karte -->
+    <rect x="12" y="6" width="38" height="48" rx="3" fill="white" transform="rotate(-8, 31, 30)"/>
+    <!-- Herz auf Karte -->
+    <path d="M29 24 C26 20 22 20 22 25 C22 29 29 35 29 35 C29 35 36 29 36 25 C36 20 32 20 29 24 Z" 
+          fill="#fa4f4f" transform="rotate(-8, 31, 30)"/>
+    
+    <!-- Konfetti -->
+    <circle cx="52" cy="2" r="3.5" fill="white"/>
+    <circle cx="60" cy="10" r="2.5" fill="white" opacity="0.8"/>
+    <circle cx="48" cy="-4" r="2" fill="white" opacity="0.6"/>
+    <rect x="56" y="-2" width="4" height="4" fill="white" opacity="0.7" transform="rotate(30, 58, 0)"/>
+  </g>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="158" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+  
+  <!-- "by pandata" Text -->
+  <text x="100" y="178" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="9" fill="#999">
+    by pandata
+  </text>
+</svg>

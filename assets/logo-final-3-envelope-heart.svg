@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Farewellify Logo 3: Briefumschlag mit Herz -->
+  
+  <!-- Weisser Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="80" r="55" fill="#fa4f4f"/>
+  
+  <!-- Briefumschlag -->
+  <g transform="translate(58, 50)">
+    <!-- Umschlag Body -->
+    <rect x="5" y="12" width="74" height="45" rx="3" fill="white"/>
+    
+    <!-- Umschlag Klappe -->
+    <path d="M5 16 L42 38 L79 16" fill="none" stroke="#fa4f4f" stroke-width="1.5" opacity="0.4"/>
+    
+    <!-- Herz das rauskommt -->
+    <path d="M42 2 C38 -4 30 -4 30 4 C30 10 42 20 42 20 C42 20 54 10 54 4 C54 -4 46 -4 42 2 Z" 
+          fill="white"/>
+  </g>
+  
+  <!-- Kleine Funkeln -->
+  <circle cx="142" cy="42" r="3" fill="#fa4f4f" opacity="0.4"/>
+  <circle cx="150" cy="52" r="2" fill="#fa4f4f" opacity="0.3"/>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="158" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+  
+  <!-- "by pandata" Text -->
+  <text x="100" y="178" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="9" fill="#999">
+    by pandata
+  </text>
+</svg>

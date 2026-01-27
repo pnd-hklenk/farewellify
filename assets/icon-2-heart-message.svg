@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Icon: Herz-Nachricht -->
+  <circle cx="50" cy="50" r="48" fill="#fa4f4f"/>
+  <g transform="translate(22, 22)">
+    <path d="M28 5 C15 5 5 13 5 23 C5 31 12 38 22 40 L19 46 L28 40 C40 39 50 31 50 23 C50 13 41 5 28 5 Z" fill="white"/>
+    <path d="M28 15 C25 11 21 11 21 16 C21 20 28 26 28 26 C28 26 35 20 35 16 C35 11 31 11 28 15 Z" fill="#fa4f4f"/>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Logo Concept 6: Nur Icon (f�r Favicon, App-Icon etc.) -->
+  
+  <!-- Briefumschlag als Basis -->
+  <rect x="15" y="25" width="70" height="50" rx="5" fill="#fa4f4f"/>
+  
+  <!-- Umschlag-Klappe -->
+  <path d="M15 30 L50 55 L85 30" fill="none" stroke="#434343" stroke-width="3" opacity="0.3"/>
+  
+  <!-- Herz das rauskommt -->
+  <g transform="translate(50, 20)">
+    <path d="M0 15 C-5 8 -18 8 -18 20 C-18 30 0 42 0 42 C0 42 18 30 18 20 C18 8 5 8 0 15 Z" 
+          fill="white"/>
+  </g>
+  
+  <!-- Kleine Sterne/Funkeln -->
+  <circle cx="25" cy="18" r="3" fill="#fa4f4f" opacity="0.6"/>
+  <circle cx="75" cy="15" r="2" fill="#fa4f4f" opacity="0.5"/>
+  <circle cx="80" cy="25" r="2.5" fill="#fa4f4f" opacity="0.4"/>
+</svg>

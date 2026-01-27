@@ -46,6 +46,17 @@
         </div>
 
         <div class="bg-white rounded-lg shadow-lg p-8 border-t-4 border-pandata-red">
+            <!-- Edit Mode Banner (shown when editing existing submission) -->
+            <div id="editModeBanner" class="hidden mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-edit text-blue-500 text-xl"></i>
+                    <div>
+                        <p class="font-medium text-blue-800">Editing your submission</p>
+                        <p class="text-sm text-blue-600">Your previous message and photos are loaded below. Make changes and save.</p>
+                    </div>
+                </div>
+            </div>
+
             <form id="submitForm" class="space-y-6">
                 <!-- Personal greeting (shown when we know who they are) -->
                 <div id="personalGreeting" class="hidden text-center py-4 bg-pandata-coral/10 rounded-lg border border-pandata-coral/20">
@@ -107,11 +118,19 @@
                                     <i class="fas fa-file-check text-2xl text-pandata-red mb-1"></i>
                                     <p id="messageFileName" class="text-sm text-pandata-charcoal font-medium"></p>
                                     <p class="text-xs text-green-600">✓ Handwritten note ready</p>
-                                    <button type="button" id="removeMessageFile" class="mt-1 text-xs text-pandata-gray hover:text-pandata-red">
-                                        <i class="fas fa-times mr-1"></i>Remove
-                                    </button>
                                 </div>
                             </label>
+                        </div>
+                        <button type="button" id="removeMessageFile" class="hidden mt-2 text-xs text-pandata-gray hover:text-pandata-red">
+                            <i class="fas fa-times mr-1"></i>Remove handwritten note
+                        </button>
+                        <!-- Existing handwritten note preview -->
+                        <div id="existingMessageFile" class="hidden mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-file-image text-green-600"></i>
+                                <span class="text-sm text-green-800">Handwritten note already uploaded</span>
+                                <a id="existingMessageFileLink" href="#" target="_blank" class="text-xs text-blue-600 hover:underline ml-auto">View</a>
+                            </div>
                         </div>
                     </div>
                     
@@ -126,16 +145,16 @@
                     </div>
                 </div>
 
-                <!-- Step 2: Photo Nudge (appears after message is written) -->
-                <div id="photoNudge" class="hidden border-t border-pandata-gray-light pt-6 transition-all">
-                    <div class="bg-gradient-to-r from-pandata-coral/10 to-pandata-red/10 rounded-lg p-5 border border-pandata-coral/30">
+                <!-- Step 2: Photos (multiple upload) -->
+                <div id="photoSection" class="border-t border-pandata-gray-light pt-6">
+                    <div class="bg-gradient-to-r from-pandata-coral/10 to-pandata-red/10 rounded-lg p-5 border border-pandata-coral/30 mb-4">
                         <div class="flex items-start gap-3">
                             <div class="text-3xl">📸</div>
                             <div>
                                 <h3 class="font-semibold text-pandata-charcoal mb-1">
                                     Step 2: Do you have any photos?
                                 </h3>
-                                <p class="text-sm text-pandata-gray-dark" id="photoNudgeText">
+                                <p class="text-sm text-pandata-gray-dark">
                                     Please take a moment to look through your pictures – do you have any photos of or with <span class="font-semibold text-pandata-red" id="honoreeNameInNudge">them</span>?
                                 </p>
                                 <p class="text-sm text-pandata-gray-dark mt-2">
@@ -145,30 +164,26 @@
                         </div>
                     </div>
                     
-                    <!-- Upload section -->
-                    <div class="mt-4">
+                    <!-- Multi-photo upload -->
+                    <div>
                         <label class="block text-sm font-medium text-pandata-charcoal mb-2">
-                            <i class="fas fa-upload text-pandata-red mr-1"></i>
-                            Upload a photo or handwritten note
+                            <i class="fas fa-images text-pandata-red mr-1"></i>
+                            Upload photos <span class="text-pandata-gray font-normal">(up to 15)</span>
                         </label>
-                        <p class="text-xs text-gray-500 mb-3">Accepted formats: PDF, JPG, PNG (max 50MB)</p>
+                        <p class="text-xs text-gray-500 mb-3">Accepted formats: JPG, PNG (max 50MB each)</p>
                         
-                        <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-pandata-red transition-colors cursor-pointer">
-                            <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
-                            <label for="fileInput" class="cursor-pointer block">
-                                <div id="uploadPlaceholder">
-                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
-                                    <p class="text-gray-600">Click to upload or drag and drop</p>
-                                    <p class="text-xs text-gray-400 mt-1">PDF, JPG, or PNG</p>
-                                </div>
-                                <div id="uploadPreview" class="hidden">
-                                    <i class="fas fa-image text-4xl text-pandata-red mb-2"></i>
-                                    <p id="fileName" class="text-pandata-charcoal font-medium"></p>
-                                    <p class="text-xs text-green-600 mt-1">✓ Photo ready to upload</p>
-                                    <button type="button" id="removeFile" class="mt-2 text-xs text-pandata-gray hover:text-pandata-red">
-                                        <i class="fas fa-times mr-1"></i>Remove
-                                    </button>
-                                </div>
+                        <!-- Photo grid -->
+                        <div id="photoGrid" class="grid grid-cols-3 gap-3 mb-4">
+                            <!-- Existing photos will be inserted here -->
+                        </div>
+                        
+                        <!-- Add photos button -->
+                        <div id="addPhotosArea" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-pandata-red transition-colors cursor-pointer">
+                            <input type="file" id="photosInput" multiple accept=".jpg,.jpeg,.png" class="hidden">
+                            <label for="photosInput" class="cursor-pointer block">
+                                <i class="fas fa-plus text-2xl text-gray-400 mb-1"></i>
+                                <p class="text-sm text-gray-600">Click to add photos</p>
+                                <p class="text-xs text-gray-400" id="photoCountText">0 / 15 photos</p>
                             </label>
                         </div>
                     </div>
@@ -185,12 +200,11 @@
                     </div>
                 </div>
 
-
                 <div class="pt-4">
-                    <button type="submit"
+                    <button type="submit" id="submitBtn"
                             class="w-full py-3 px-6 bg-pandata-red text-white font-semibold rounded-lg hover:bg-pandata-red-dark transition-all shadow-lg">
                         <i class="fas fa-paper-plane mr-2"></i>
-                        Submit Message
+                        <span id="submitBtnText">Submit Message</span>
                     </button>
                 </div>
             </form>
@@ -207,15 +221,22 @@
                 <i class="fas fa-check text-4xl text-pandata-red"></i>
             </div>
             <h2 class="text-2xl font-semibold text-pandata-charcoal mb-2">Thank You!</h2>
-            <p class="text-pandata-gray-dark">Your message has been submitted successfully.</p>
+            <p class="text-pandata-gray-dark" id="successMessage">Your message has been submitted successfully.</p>
             <p class="text-pandata-gray mt-4">Your contribution will mean a lot!</p>
+            <button onclick="location.reload()" class="mt-6 text-sm text-pandata-red hover:underline">
+                <i class="fas fa-edit mr-1"></i>Edit my submission
+            </button>
         </div>
     </div>
 
     <script>
         const eventId = '{{ event_id }}';
         let honoreeName = '';
-        let hasPhoto = false;
+        let isEditMode = false;
+        let existingPhotos = []; // URLs of existing photos to keep
+        let newPhotoFiles = [];  // New files to upload
+        let hasMessageFile = false;
+        let existingMessageFileUrl = null;
         
         // Check for email in URL params
         const urlParams = new URLSearchParams(window.location.search);
@@ -223,15 +244,13 @@
         if (emailParam) {
             const emailInput = document.getElementById('emailInput');
             emailInput.value = emailParam;
-            // Make email read-only since it's from the personalized link
             emailInput.readOnly = true;
             emailInput.classList.add('bg-gray-50', 'text-pandata-gray-dark');
         }
 
-        // Load event details + team member info
+        // Load event details + existing submission
         async function loadEvent() {
             try {
-                // Include email in API call to get team member name
                 let url = `/api/events/${eventId}`;
                 if (emailParam) {
                     url += `?email=${encodeURIComponent(emailParam)}`;
@@ -245,9 +264,9 @@
                 
                 const event = await response.json();
                 
-                // Set honoree name (the person leaving) - use first name only
+                // Set honoree name
                 const fullName = event.honoree_name;
-                honoreeName = fullName.split(' ')[0]; // First name only
+                honoreeName = fullName.split(' ')[0];
                 document.getElementById('honoreeName').textContent = honoreeName;
                 document.getElementById('honoreeNameInNudge').textContent = honoreeName;
                 document.title = `Farewell Message for ${honoreeName}`;
@@ -258,14 +277,44 @@
                     document.getElementById('nameInput').readOnly = true;
                     document.getElementById('nameInput').classList.add('bg-gray-50', 'text-pandata-gray-dark');
                     
-                    // Show personal greeting with first name
                     const firstName = event.team_member_name.split(' ')[0];
                     document.getElementById('greetingName').textContent = firstName;
                     document.getElementById('honoreeInGreeting').textContent = honoreeName;
                     document.getElementById('personalGreeting').classList.remove('hidden');
-                    
-                    // Collapse identity fields since we know who they are
                     document.getElementById('identityFields').classList.add('hidden');
+                }
+                
+                // Load existing submission if any
+                if (event.existing_submission) {
+                    isEditMode = true;
+                    document.getElementById('editModeBanner').classList.remove('hidden');
+                    document.getElementById('submitBtnText').textContent = 'Update Submission';
+                    document.getElementById('successMessage').textContent = 'Your submission has been updated successfully.';
+                    
+                    const sub = event.existing_submission;
+                    
+                    // Load existing message
+                    if (sub.message) {
+                        document.getElementById('messageInput').value = sub.message;
+                    }
+                    
+                    // Load existing handwritten note (file_url)
+                    if (sub.file_url) {
+                        existingMessageFileUrl = sub.file_url;
+                        document.getElementById('existingMessageFile').classList.remove('hidden');
+                        document.getElementById('existingMessageFileLink').href = sub.file_url;
+                        hasMessageFile = true;
+                    }
+                    
+                    // Load existing photos
+                    if (sub.photo_urls) {
+                        try {
+                            existingPhotos = JSON.parse(sub.photo_urls);
+                            renderPhotoGrid();
+                        } catch (e) {
+                            console.error('Error parsing photo_urls:', e);
+                        }
+                    }
                 }
                 
                 const deadline = new Date(event.deadline);
@@ -275,152 +324,153 @@
                     month: 'long',
                     day: 'numeric'
                 });
+                
+                renderPhotoGrid();
+                updatePhotoCount();
             } catch (error) {
                 console.error('Error loading event:', error);
                 document.getElementById('honoreeName').textContent = 'Error loading event';
             }
         }
 
-        // Show photo nudge when user provides a message (typed OR uploaded)
-        const messageInput = document.getElementById('messageInput');
-        const messageFileInput = document.getElementById('messageFileInput');
-        const photoNudge = document.getElementById('photoNudge');
-        let nudgeShown = false;
-        let hasMessageFile = false;
-        
-        function showPhotoNudge() {
-            if (!nudgeShown) {
-                photoNudge.classList.remove('hidden');
-                photoNudge.style.animation = 'fadeIn 0.5s ease-out';
-                nudgeShown = true;
-                updateSubmitButton();
+        // Render the photo grid with existing and new photos
+        function renderPhotoGrid() {
+            const grid = document.getElementById('photoGrid');
+            grid.innerHTML = '';
+            
+            // Add existing photos
+            existingPhotos.forEach((url, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative aspect-square rounded-lg overflow-hidden bg-gray-100 group';
+                div.innerHTML = `
+                    <img src="${url}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeExistingPhoto(${index})" 
+                            class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                `;
+                grid.appendChild(div);
+            });
+            
+            // Add new photo previews
+            newPhotoFiles.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative aspect-square rounded-lg overflow-hidden bg-gray-100 group';
+                const url = URL.createObjectURL(file);
+                div.innerHTML = `
+                    <img src="${url}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-xs py-1 text-center">New</div>
+                    <button type="button" onclick="removeNewPhoto(${index})" 
+                            class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                `;
+                grid.appendChild(div);
+            });
+            
+            updatePhotoCount();
+        }
+
+        function removeExistingPhoto(index) {
+            existingPhotos.splice(index, 1);
+            renderPhotoGrid();
+        }
+
+        function removeNewPhoto(index) {
+            newPhotoFiles.splice(index, 1);
+            renderPhotoGrid();
+        }
+
+        function updatePhotoCount() {
+            const total = existingPhotos.length + newPhotoFiles.length;
+            document.getElementById('photoCountText').textContent = `${total} / 15 photos`;
+            
+            // Hide add button if max reached
+            if (total >= 15) {
+                document.getElementById('addPhotosArea').classList.add('hidden');
+            } else {
+                document.getElementById('addPhotosArea').classList.remove('hidden');
+            }
+            
+            // Update no photo section visibility
+            if (total > 0) {
+                document.getElementById('noPhotoSection').classList.add('hidden');
+                document.getElementById('noPhotoCheckbox').checked = false;
+            } else {
+                document.getElementById('noPhotoSection').classList.remove('hidden');
             }
         }
-        
-        // Show nudge when typing message
-        messageInput.addEventListener('input', () => {
-            if (messageInput.value.length > 10) {
-                showPhotoNudge();
-            }
+
+        // Handle multi-photo upload
+        document.getElementById('photosInput').addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            const remaining = 15 - existingPhotos.length - newPhotoFiles.length;
+            const toAdd = files.slice(0, remaining);
+            
+            newPhotoFiles = [...newPhotoFiles, ...toAdd];
+            renderPhotoGrid();
+            
+            // Reset input
+            e.target.value = '';
         });
-        
-        // Also show nudge when user clicks out of the message field
-        messageInput.addEventListener('blur', () => {
-            if (messageInput.value.length > 0) {
-                showPhotoNudge();
-            }
-        });
-        
-        // Handle handwritten note upload (Option A)
+
+        // Handle handwritten note upload
+        const messageFileInput = document.getElementById('messageFileInput');
         messageFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 hasMessageFile = true;
+                existingMessageFileUrl = null; // New file replaces existing
                 document.getElementById('messageUploadPlaceholder').classList.add('hidden');
                 document.getElementById('messageUploadPreview').classList.remove('hidden');
                 document.getElementById('messageFileName').textContent = file.name;
                 document.getElementById('messageUploadArea').classList.remove('border-pandata-coral/50');
                 document.getElementById('messageUploadArea').classList.add('border-pandata-red', 'bg-pandata-coral/5');
+                document.getElementById('removeMessageFile').classList.remove('hidden');
+                document.getElementById('existingMessageFile').classList.add('hidden');
                 
-                // Clear typed message when uploading handwritten note
-                messageInput.value = '';
-                messageInput.placeholder = 'Handwritten note uploaded above ✓';
-                
-                showPhotoNudge();
+                document.getElementById('messageInput').value = '';
+                document.getElementById('messageInput').placeholder = 'Handwritten note uploaded above ✓';
             }
         });
-        
+
         // Remove handwritten note
-        document.getElementById('removeMessageFile')?.addEventListener('click', (e) => {
+        document.getElementById('removeMessageFile').addEventListener('click', (e) => {
             e.preventDefault();
-            e.stopPropagation();
             messageFileInput.value = '';
             hasMessageFile = false;
+            existingMessageFileUrl = null;
             document.getElementById('messageUploadPlaceholder').classList.remove('hidden');
             document.getElementById('messageUploadPreview').classList.add('hidden');
             document.getElementById('messageUploadArea').classList.add('border-pandata-coral/50');
             document.getElementById('messageUploadArea').classList.remove('border-pandata-red', 'bg-pandata-coral/5');
-            messageInput.placeholder = 'Or type your farewell message here...';
-            updateSubmitButton();
+            document.getElementById('removeMessageFile').classList.add('hidden');
+            document.getElementById('messageInput').placeholder = 'Or type your farewell message here...';
         });
 
-        // File upload preview
-        const fileInput = document.getElementById('fileInput');
-        const noPhotoCheckbox = document.getElementById('noPhotoCheckbox');
-        const uploadArea = document.getElementById('uploadArea');
-        
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                hasPhoto = true;
-                document.getElementById('uploadPlaceholder').classList.add('hidden');
-                document.getElementById('uploadPreview').classList.remove('hidden');
-                document.getElementById('fileName').textContent = file.name;
-                uploadArea.classList.remove('border-gray-300');
-                uploadArea.classList.add('border-pandata-red', 'bg-pandata-coral/5');
-                
-                // Uncheck the "no photo" box since they uploaded one
-                noPhotoCheckbox.checked = false;
-                document.getElementById('noPhotoSection').classList.add('opacity-50');
-                
-                updateSubmitButton();
-            }
-        });
-        
-        // Remove file button
-        document.getElementById('removeFile')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fileInput.value = '';
-            hasPhoto = false;
-            document.getElementById('uploadPlaceholder').classList.remove('hidden');
-            document.getElementById('uploadPreview').classList.add('hidden');
-            uploadArea.classList.add('border-gray-300');
-            uploadArea.classList.remove('border-pandata-red', 'bg-pandata-coral/5');
-            document.getElementById('noPhotoSection').classList.remove('opacity-50');
-            updateSubmitButton();
-        });
-        
-        // No photo checkbox
-        noPhotoCheckbox.addEventListener('change', () => {
-            updateSubmitButton();
-        });
-        
-        // Update submit button state
-        function updateSubmitButton() {
-            const submitBtn = document.querySelector('button[type="submit"]');
-            const hasMessage = messageInput.value.trim().length > 0 || hasMessageFile;
-            const photoOk = hasPhoto || noPhotoCheckbox.checked || !nudgeShown;
-            
-            if (hasMessage && photoOk) {
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else if (nudgeShown && hasMessage && !hasPhoto && !noPhotoCheckbox.checked) {
-                submitBtn.disabled = true;
-                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else if (!hasMessage) {
-                submitBtn.disabled = true;
-                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
+        // Form submission
         document.getElementById('submitForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validate: must have either typed message or uploaded handwritten note
-            const hasMessage = messageInput.value.trim().length > 0 || hasMessageFile;
-            if (!hasMessage) {
+            const messageInput = document.getElementById('messageInput');
+            const hasTypedMessage = messageInput.value.trim().length > 0;
+            const hasHandwrittenNote = hasMessageFile || existingMessageFileUrl;
+            
+            // Validate: must have message or handwritten note
+            if (!hasTypedMessage && !hasHandwrittenNote) {
                 alert('Please write a message or upload a handwritten note.');
                 return;
             }
             
-            // Validate: if nudge is shown, must have photo or checkbox
-            if (nudgeShown && !hasPhoto && !noPhotoCheckbox.checked) {
-                alert('Please either upload a photo or confirm you don\'t have any to share.');
+            // Validate photos
+            const totalPhotos = existingPhotos.length + newPhotoFiles.length;
+            const noPhotoChecked = document.getElementById('noPhotoCheckbox').checked;
+            if (totalPhotos === 0 && !noPhotoChecked) {
+                alert('Please either upload at least one photo or check the box to confirm you don\'t have any.');
                 return;
             }
             
-            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
             
@@ -430,15 +480,18 @@
             formData.append('name', document.querySelector('[name="name"]').value);
             formData.append('message', messageInput.value);
             
-            // Add the handwritten note as 'messageFile' if uploaded
-            if (hasMessageFile && messageFileInput.files[0]) {
+            // Add existing photos to keep
+            formData.append('existingPhotos', JSON.stringify(existingPhotos));
+            
+            // Add handwritten note if new one uploaded
+            if (messageFileInput.files[0]) {
                 formData.append('messageFile', messageFileInput.files[0]);
             }
             
-            // Add the photo as 'file' if uploaded
-            if (hasPhoto && fileInput.files[0]) {
-                formData.append('file', fileInput.files[0]);
-            }
+            // Add new photos
+            newPhotoFiles.forEach(file => {
+                formData.append('photos', file);
+            });
 
             try {
                 const response = await fetch('/api/submissions', {
@@ -450,16 +503,17 @@
                 
                 if (result.success) {
                     document.getElementById('submitForm').parentElement.classList.add('hidden');
+                    document.getElementById('editModeBanner').classList.add('hidden');
                     document.getElementById('successState').classList.remove('hidden');
                 } else {
                     alert('Error submitting message: ' + (result.error || 'Unknown error'));
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Message';
+                    submitBtn.innerHTML = `<i class="fas fa-paper-plane mr-2"></i><span id="submitBtnText">${isEditMode ? 'Update Submission' : 'Submit Message'}</span>`;
                 }
             } catch (error) {
                 alert('Error: ' + error.message);
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Message';
+                submitBtn.innerHTML = `<i class="fas fa-paper-plane mr-2"></i><span id="submitBtnText">${isEditMode ? 'Update Submission' : 'Submit Message'}</span>`;
             }
         });
 

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+  <!-- Logo Concept 5: Minimalistisches F mit Welle -->
+  <defs>
+    <style>
+      .text-red { fill: #fa4f4f; }
+      .text-gray { fill: #434343; }
+    </style>
+  </defs>
+  
+  <!-- Stilisiertes F in einem Kreis -->
+  <g transform="translate(10, 10)">
+    <!-- Kreis-Hintergrund -->
+    <circle cx="40" cy="40" r="35" fill="#fa4f4f"/>
+    
+    <!-- Stilisiertes F -->
+    <text x="26" y="58" font-family="'Open Sans', Arial, sans-serif" font-size="50" font-weight="700" fill="white">f</text>
+    
+    <!-- Winkende Welle -->
+    <path d="M58 20 Q65 15 72 20 Q79 25 72 30" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Text: farewellify -->
+  <text x="95" y="62" font-family="'Open Sans', Arial, sans-serif" font-size="32" font-weight="600">
+    <tspan class="text-red">farewell</tspan><tspan class="text-gray">ify</tspan>
+  </text>
+</svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+  <!-- Logo Concept 4: Papierflieger mit Herz-Spur -->
+  <defs>
+    <style>
+      .text-red { fill: #fa4f4f; }
+      .text-gray { fill: #434343; }
+    </style>
+  </defs>
+  
+  <!-- Papierflieger -->
+  <g transform="translate(5, 15)">
+    <!-- Flugbahn (Herz-Form) -->
+    <path d="M10 55 Q25 35 40 45 Q55 55 50 40 Q45 25 60 30" 
+          fill="none" stroke="#fa4f4f" stroke-width="2" stroke-dasharray="4,3" opacity="0.6"/>
+    
+    <!-- Papierflieger -->
+    <g transform="translate(55, 20) rotate(-30)">
+      <path d="M0 12 L35 0 L10 12 L35 24 Z" fill="#fa4f4f"/>
+      <path d="M10 12 L35 0 L35 24 Z" fill="#fa4f4f" opacity="0.7"/>
+      <path d="M10 12 L25 12 L35 24 Z" fill="#fa4f4f" opacity="0.5"/>
+    </g>
+  </g>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="62" font-family="'Open Sans', Arial, sans-serif" font-size="32" font-weight="600">
+    <tspan class="text-red">farewell</tspan><tspan class="text-gray">ify</tspan>
+  </text>
+</svg>

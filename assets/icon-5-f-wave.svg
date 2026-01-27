@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Icon: F mit Welle -->
+  <circle cx="50" cy="50" r="48" fill="#fa4f4f"/>
+  <text x="38" y="68" font-family="'Open Sans', Arial, sans-serif" font-size="55" font-weight="700" fill="white">f</text>
+  <path d="M60 28 Q68 22 76 28 Q84 35 76 42" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+  <!-- Logo Concept 2: Sprechblase mit Herz -->
+  <defs>
+    <style>
+      .text-red { fill: #fa4f4f; }
+      .text-gray { fill: #434343; }
+    </style>
+  </defs>
+  
+  <!-- Sprechblase -->
+  <g transform="translate(10, 12)">
+    <path d="M55 10 C30 10 10 25 10 42 C10 55 22 65 40 68 L35 78 L50 68 C72 66 85 54 85 42 C85 25 70 10 55 10 Z" 
+          fill="#fa4f4f"/>
+    <!-- Herz in der Blase -->
+    <path d="M47 30 C44 26 38 26 38 33 C38 38 47 48 47 48 C47 48 56 38 56 33 C56 26 50 26 47 30 Z" 
+          fill="white"/>
+  </g>
+  
+  <!-- Text: farewellify -->
+  <text x="100" y="62" font-family="'Open Sans', Arial, sans-serif" font-size="32" font-weight="600">
+    <tspan class="text-red">farewell</tspan><tspan class="text-gray">ify</tspan>
+  </text>
+</svg>

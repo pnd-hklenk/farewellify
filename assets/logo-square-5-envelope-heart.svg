@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Logo Square 5: Briefumschlag mit Herz -->
+  
+  <!-- Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="85" r="60" fill="#fa4f4f"/>
+  
+  <!-- Briefumschlag -->
+  <g transform="translate(55, 55)">
+    <!-- Umschlag Body -->
+    <rect x="5" y="15" width="80" height="50" rx="4" fill="white"/>
+    
+    <!-- Umschlag Klappe -->
+    <path d="M5 20 L45 45 L85 20" fill="none" stroke="#fa4f4f" stroke-width="2" opacity="0.4"/>
+    
+    <!-- Herz das rauskommt -->
+    <path d="M45 5 C40 -2 30 -2 30 8 C30 16 45 28 45 28 C45 28 60 16 60 8 C60 -2 50 -2 45 5 Z" 
+          fill="white"/>
+  </g>
+  
+  <!-- Kleine Funkeln -->
+  <circle cx="145" cy="45" r="3" fill="#fa4f4f" opacity="0.5"/>
+  <circle cx="155" cy="55" r="2" fill="#fa4f4f" opacity="0.4"/>
+  
+  <!-- Text -->
+  <text x="100" y="170" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="24" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+</svg>

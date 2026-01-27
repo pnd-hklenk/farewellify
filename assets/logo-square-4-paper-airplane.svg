@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Logo Square 4: Papierflieger -->
+  
+  <!-- Hintergrund -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Roter Kreis -->
+  <circle cx="100" cy="85" r="60" fill="#fa4f4f"/>
+  
+  <!-- Papierflieger -->
+  <g transform="translate(50, 50)">
+    <!-- Flugbahn -->
+    <path d="M15 55 Q30 35 45 45 Q60 55 55 40 Q50 25 65 30" 
+          fill="none" stroke="white" stroke-width="2.5" stroke-dasharray="5,4" opacity="0.7"/>
+    
+    <!-- Flieger -->
+    <g transform="translate(60, 22) rotate(-35)">
+      <path d="M0 10 L30 0 L8 10 L30 20 Z" fill="white"/>
+      <path d="M8 10 L30 0 L30 20 Z" fill="white" opacity="0.7"/>
+    </g>
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="170" text-anchor="middle" font-family="'Open Sans', Arial, sans-serif" font-size="24" font-weight="600">
+    <tspan fill="#fa4f4f">farewell</tspan><tspan fill="#434343">ify</tspan>
+  </text>
+</svg>
