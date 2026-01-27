@@ -499,6 +499,20 @@
                     body: formData
                 });
 
+                // Check if response is OK before parsing JSON
+                if (!response.ok) {
+                    // Try to get error details, but handle case where response is HTML
+                    let errorMessage = `Server error (${response.status})`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        // Response was not JSON (likely HTML error page)
+                        errorMessage = `Server error (${response.status}). Please try again or contact support.`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
                 const result = await response.json();
                 
                 if (result.success) {

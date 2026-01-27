@@ -48,6 +48,26 @@ def handle_file_too_large(e):
         'error': f'File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)}MB.'
     }), 413
 
+# Generic error handler to ensure API errors return JSON, not HTML
+@app.errorhandler(500)
+def handle_internal_error(e):
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error. Please try again or contact support.'
+    }), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors that already have handlers
+    if hasattr(e, 'code') and e.code in [413]:
+        raise e
+    # Return JSON for any other unhandled exceptions
+    app.logger.error(f'Unhandled exception: {str(e)}')
+    return jsonify({
+        'success': False,
+        'error': 'An unexpected error occurred. Please try again.'
+    }), 500
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -381,116 +401,126 @@ def create_submission():
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
     
-    event_id = request.form.get('eventId')
-    email = request.form.get('email')
-    name = request.form.get('name')
-    message = request.form.get('message')
-    existing_photos = request.form.get('existingPhotos')  # JSON array of existing photo URLs to keep
-    
-    if not event_id or not email:
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    # Handle file uploads
-    file_url = None
-    photo_urls = []
-    
-    # Keep existing photos if specified
-    if existing_photos:
-        try:
-            photo_urls = json.loads(existing_photos)
-        except:
-            photo_urls = []
-    
-    # Handle handwritten note (messageFile) - this becomes file_url
-    if 'messageFile' in request.files:
-        msg_file = request.files['messageFile']
-        if msg_file and msg_file.filename and allowed_file(msg_file.filename):
-            ext = msg_file.filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{event_id}_msg_{uuid.uuid4().hex[:8]}.{ext}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            msg_file.save(filepath)
-            file_url = f"/uploads/{unique_filename}"
-    
-    # Handle multiple photo files (up to 15)
-    photo_files = request.files.getlist('photos')
-    for photo in photo_files[:15]:  # Limit to 15 photos
-        if photo and photo.filename and allowed_file(photo.filename):
-            ext = photo.filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{event_id}_photo_{uuid.uuid4().hex[:8]}.{ext}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            photo.save(filepath)
-            photo_urls.append(f"/uploads/{unique_filename}")
-    
-    # Legacy: Handle single 'file' upload (for backwards compatibility)
-    if 'file' in request.files:
-        file = request.files['file']
-        if file and file.filename and allowed_file(file.filename):
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{event_id}_{uuid.uuid4().hex[:8]}.{ext}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(filepath)
-            photo_urls.append(f"/uploads/{unique_filename}")
-    
-    # Find the team member
-    member = supabase.table('team_members').select('*').eq('event_id', event_id).eq('email', email).limit(1).execute()
-    
-    if not member.data or len(member.data) == 0:
-        # Create a new team member if they weren't pre-registered
-        new_member = {
-            'event_id': event_id,
-            'name': name or email.split('@')[0],
-            'email': email
-        }
-        member = supabase.table('team_members').insert(new_member).execute()
-        member_id = member.data[0]['id']
-    else:
-        member_id = member.data[0]['id']
-    
-    # Check if already submitted
-    existing = supabase.table('submissions').select('*').eq('event_id', event_id).eq('team_member_id', member_id).execute()
-    
-    # Build submission data
-    submission_data = {
-        'event_id': event_id,
-        'team_member_id': member_id,
-        'message': message if message else None,
-        'file_url': file_url
-    }
-    
-    # Add photo_urls if there are any photos
-    if photo_urls:
-        submission_data['photo_urls'] = json.dumps(photo_urls)
-    
     try:
-        if existing.data:
-            # Update existing submission
-            # Keep old file_url if no new one uploaded
-            if not file_url and existing.data[0].get('file_url'):
-                submission_data['file_url'] = existing.data[0]['file_url']
-            supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
-        else:
-            # Create new submission
-            supabase.table('submissions').insert(submission_data).execute()
+        event_id = request.form.get('eventId')
+        email = request.form.get('email')
+        name = request.form.get('name')
+        message = request.form.get('message')
+        existing_photos = request.form.get('existingPhotos')  # JSON array of existing photo URLs to keep
         
-        return jsonify({'success': True})
-    except Exception as e:
-        error_msg = str(e)
-        # Check if error is about missing photo_urls column
-        if 'photo_urls' in error_msg:
-            # Try again without photo_urls
-            del submission_data['photo_urls']
+        if not event_id or not email:
+            return jsonify({'error': 'Missing required fields (eventId or email)'}), 400
+        
+        # Handle file uploads
+        file_url = None
+        photo_urls = []
+        
+        # Keep existing photos if specified
+        if existing_photos:
             try:
-                if existing.data:
-                    supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
-                else:
-                    supabase.table('submissions').insert(submission_data).execute()
-                return jsonify({
-                    'success': True, 
-                    'warning': 'Photos not saved - please add photo_urls column to submissions table in Supabase'
-                })
-            except Exception as e2:
-                return jsonify({'success': False, 'error': str(e2)}), 500
-        return jsonify({'success': False, 'error': error_msg}), 500
+                photo_urls = json.loads(existing_photos)
+            except:
+                photo_urls = []
+        
+        # Handle handwritten note (messageFile) - this becomes file_url
+        if 'messageFile' in request.files:
+            msg_file = request.files['messageFile']
+            if msg_file and msg_file.filename and allowed_file(msg_file.filename):
+                ext = msg_file.filename.rsplit('.', 1)[1].lower()
+                unique_filename = f"{event_id}_msg_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                msg_file.save(filepath)
+                file_url = f"/uploads/{unique_filename}"
+        
+        # Handle multiple photo files (up to 15)
+        photo_files = request.files.getlist('photos')
+        for photo in photo_files[:15]:  # Limit to 15 photos
+            if photo and photo.filename and allowed_file(photo.filename):
+                ext = photo.filename.rsplit('.', 1)[1].lower()
+                unique_filename = f"{event_id}_photo_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                photo.save(filepath)
+                photo_urls.append(f"/uploads/{unique_filename}")
+        
+        # Legacy: Handle single 'file' upload (for backwards compatibility)
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                unique_filename = f"{event_id}_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(filepath)
+                photo_urls.append(f"/uploads/{unique_filename}")
+        
+        # Find the team member
+        member = supabase.table('team_members').select('*').eq('event_id', event_id).eq('email', email).limit(1).execute()
+        
+        if not member.data or len(member.data) == 0:
+            # Create a new team member if they weren't pre-registered
+            new_member = {
+                'event_id': event_id,
+                'name': name or email.split('@')[0],
+                'email': email
+            }
+            member = supabase.table('team_members').insert(new_member).execute()
+            member_id = member.data[0]['id']
+        else:
+            member_id = member.data[0]['id']
+        
+        # Check if already submitted
+        existing = supabase.table('submissions').select('*').eq('event_id', event_id).eq('team_member_id', member_id).execute()
+        
+        # Build submission data - start without photo_urls to ensure basic submission works
+        submission_data = {
+            'event_id': event_id,
+            'team_member_id': member_id,
+            'message': message if message else None,
+            'file_url': file_url
+        }
+        
+        # Keep old file_url if no new one uploaded
+        if existing.data and not file_url and existing.data[0].get('file_url'):
+            submission_data['file_url'] = existing.data[0]['file_url']
+        
+        # Try to save with photo_urls first
+        if photo_urls:
+            submission_data['photo_urls'] = json.dumps(photo_urls)
+        
+        try:
+            if existing.data:
+                supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
+            else:
+                supabase.table('submissions').insert(submission_data).execute()
+            
+            return jsonify({'success': True})
+        except Exception as db_error:
+            error_msg = str(db_error)
+            print(f"Database error (with photo_urls): {error_msg}")
+            
+            # If photo_urls column doesn't exist, try without it
+            if 'photo_urls' in error_msg or 'column' in error_msg.lower():
+                if 'photo_urls' in submission_data:
+                    del submission_data['photo_urls']
+                try:
+                    if existing.data:
+                        supabase.table('submissions').update(submission_data).eq('id', existing.data[0]['id']).execute()
+                    else:
+                        supabase.table('submissions').insert(submission_data).execute()
+                    return jsonify({
+                        'success': True, 
+                        'warning': 'Photos not saved - photo_urls column missing in database'
+                    })
+                except Exception as e2:
+                    print(f"Database error (without photo_urls): {str(e2)}")
+                    return jsonify({'success': False, 'error': f'Database error: {str(e2)}'}), 500
+            
+            return jsonify({'success': False, 'error': f'Database error: {error_msg}'}), 500
+            
+    except Exception as e:
+        print(f"Submission error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
 @app.route('/uploads/<filename>')
