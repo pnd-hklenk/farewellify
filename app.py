@@ -25,6 +25,11 @@ try:
 except ImportError:
     DRIVE_AVAILABLE = False
 
+# Miro API configuration
+MIRO_ACCESS_TOKEN = os.getenv('MIRO_ACCESS_TOKEN', '')
+MIRO_TEAM_ID = os.getenv('MIRO_TEAM_ID', '')
+MIRO_API_BASE = 'https://api.miro.com/v2'
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -782,6 +787,251 @@ def download_all_submissions(access_code):
         as_attachment=True,
         download_name=filename
     )
+
+
+# ============================================
+# MIRO COLLAGE INTEGRATION
+# ============================================
+
+def miro_api_request(method, endpoint, data=None):
+    """Make a request to the Miro API"""
+    if not MIRO_ACCESS_TOKEN:
+        raise Exception('Miro API not configured')
+    
+    headers = {
+        'Authorization': f'Bearer {MIRO_ACCESS_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    
+    url = f'{MIRO_API_BASE}{endpoint}'
+    
+    if method == 'GET':
+        response = requests.get(url, headers=headers)
+    elif method == 'POST':
+        response = requests.post(url, headers=headers, json=data)
+    else:
+        raise Exception(f'Unsupported method: {method}')
+    
+    if response.status_code >= 400:
+        app.logger.error(f'Miro API error: {response.status_code} - {response.text}')
+        raise Exception(f'Miro API error: {response.text}')
+    
+    return response.json()
+
+
+def create_miro_board(name: str) -> dict:
+    """Create a new Miro board"""
+    data = {
+        'name': name,
+        'teamId': MIRO_TEAM_ID
+    }
+    return miro_api_request('POST', '/boards', data)
+
+
+def add_miro_image(board_id: str, image_url: str, x: float, y: float, width: int = 300) -> dict:
+    """Add an image to a Miro board from URL"""
+    data = {
+        'data': {
+            'url': image_url
+        },
+        'position': {
+            'x': x,
+            'y': y,
+            'origin': 'center'
+        },
+        'geometry': {
+            'width': width
+        }
+    }
+    return miro_api_request('POST', f'/boards/{board_id}/images', data)
+
+
+def add_miro_sticky_note(board_id: str, content: str, x: float, y: float, color: str = 'light_yellow') -> dict:
+    """Add a sticky note to a Miro board"""
+    # Miro sticky notes have a max content length
+    truncated_content = content[:1000] if content else ''
+    
+    data = {
+        'data': {
+            'content': truncated_content,
+            'shape': 'square'
+        },
+        'style': {
+            'fillColor': color
+        },
+        'position': {
+            'x': x,
+            'y': y,
+            'origin': 'center'
+        }
+    }
+    return miro_api_request('POST', f'/boards/{board_id}/sticky_notes', data)
+
+
+def add_miro_text(board_id: str, content: str, x: float, y: float, font_size: int = 24) -> dict:
+    """Add a text element to a Miro board"""
+    data = {
+        'data': {
+            'content': content
+        },
+        'style': {
+            'fontSize': str(font_size)
+        },
+        'position': {
+            'x': x,
+            'y': y,
+            'origin': 'center'
+        }
+    }
+    return miro_api_request('POST', f'/boards/{board_id}/texts', data)
+
+
+def add_miro_shape(board_id: str, shape: str, x: float, y: float, width: int, height: int, fill_color: str = '#fa4f4f') -> dict:
+    """Add a shape to a Miro board"""
+    data = {
+        'data': {
+            'shape': shape
+        },
+        'style': {
+            'fillColor': fill_color,
+            'borderWidth': '0'
+        },
+        'position': {
+            'x': x,
+            'y': y,
+            'origin': 'center'
+        },
+        'geometry': {
+            'width': width,
+            'height': height
+        }
+    }
+    return miro_api_request('POST', f'/boards/{board_id}/shapes', data)
+
+
+@app.route('/api/admin/<access_code>/create-miro-collage', methods=['POST'])
+def create_miro_collage(access_code):
+    """Create a Miro board collage with all submitted photos and messages"""
+    if not MIRO_ACCESS_TOKEN or not MIRO_TEAM_ID:
+        return jsonify({'error': 'Miro API not configured. Please add MIRO_ACCESS_TOKEN and MIRO_TEAM_ID to .env'}), 400
+    
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+    
+    # Get event by access code
+    event = supabase.table('farewell_events').select('*').eq('access_code', access_code).limit(1).execute()
+    if not event.data or len(event.data) == 0:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    event_data = event.data[0]
+    event_id = event_data['id']
+    honoree_name = event_data['honoree_name']
+    
+    # Get all submissions with team member info
+    submissions = supabase.table('submissions').select('*, team_members(name, email)').eq('event_id', event_id).execute()
+    
+    if not submissions.data:
+        return jsonify({'error': 'No submissions yet. Add some messages before creating a collage!'}), 400
+    
+    try:
+        # Create Miro board
+        board = create_miro_board(f'Farewell Card - {honoree_name}')
+        board_id = board['id']
+        board_url = board['viewLink']
+        
+        # Layout configuration
+        CARD_WIDTH = 300
+        CARD_HEIGHT = 400
+        CARDS_PER_ROW = 4
+        PADDING = 50
+        START_Y = 200  # Leave space for header
+        
+        # Add header
+        add_miro_shape(board_id, 'rectangle', 600, 0, 1400, 100, '#fa4f4f')
+        add_miro_text(board_id, f'<strong>Farewell, {honoree_name}!</strong>', 600, 0, 48)
+        
+        # Track position
+        current_x = 0
+        current_y = START_Y
+        items_in_row = 0
+        
+        for submission in submissions.data:
+            member_name = submission['team_members']['name'] if submission.get('team_members') else 'Anonymous'
+            message = submission.get('message', '')
+            file_url = submission.get('file_url')  # Handwritten note
+            photo_urls_json = submission.get('photo_urls')
+            
+            # Parse photo URLs
+            photo_urls = []
+            if photo_urls_json:
+                try:
+                    photo_urls = json.loads(photo_urls_json)
+                except:
+                    pass
+            
+            # Calculate position for this submission
+            x_pos = current_x * (CARD_WIDTH + PADDING)
+            y_pos = current_y
+            
+            # Add all photos from this submission
+            all_photos = photo_urls.copy()
+            if file_url and file_url.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                all_photos.insert(0, file_url)  # Add handwritten note as first photo
+            
+            # Add photos
+            for photo_idx, photo_url in enumerate(all_photos[:3]):  # Max 3 photos per person
+                photo_x = x_pos + (photo_idx * 100)  # Offset each photo slightly
+                photo_y = y_pos + (photo_idx * 30)
+                
+                try:
+                    add_miro_image(board_id, photo_url, photo_x, photo_y, 250)
+                except Exception as e:
+                    app.logger.warning(f'Could not add image {photo_url}: {str(e)}')
+            
+            # Add sticky note with message and name
+            sticky_content = f'<strong>{member_name}</strong>'
+            if message:
+                sticky_content += f'<br><br>"{message}"'
+            
+            # Position sticky note below photos
+            sticky_y = y_pos + 200
+            add_miro_sticky_note(board_id, sticky_content, x_pos, sticky_y, 'light_yellow')
+            
+            # Move to next position
+            items_in_row += 1
+            current_x += 1
+            
+            if items_in_row >= CARDS_PER_ROW:
+                items_in_row = 0
+                current_x = 0
+                current_y += CARD_HEIGHT + PADDING
+        
+        # Update event with Miro board URL
+        supabase.table('farewell_events').update({
+            'miro_board_url': board_url
+        }).eq('id', event_id).execute()
+        
+        return jsonify({
+            'success': True,
+            'boardUrl': board_url,
+            'boardId': board_id,
+            'itemCount': len(submissions.data)
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Error creating Miro collage: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to create Miro board: {str(e)}'}), 500
+
+
+@app.route('/api/miro/status')
+def miro_status():
+    """Check if Miro API is configured"""
+    return jsonify({
+        'configured': bool(MIRO_ACCESS_TOKEN and MIRO_TEAM_ID),
+        'teamId': MIRO_TEAM_ID if MIRO_TEAM_ID else None
+    })
 
 
 if __name__ == '__main__':

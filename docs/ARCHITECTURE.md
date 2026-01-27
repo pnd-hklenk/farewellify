@@ -20,8 +20,10 @@
 │  - POST /api/events/{id}/send-reminders                              │
 │  - POST /api/events/{id}/submissions                                 │
 │  - GET  /api/admin/{code}        Get event data for admin            │
+│  - POST /api/admin/{code}/create-miro-collage  Create Miro board     │
 │  - GET  /api/employees           Get active employees                │
 │  - GET  /api/email/status        Check email + drive status          │
+│  - GET  /api/miro/status         Check Miro API configuration        │
 └────────┬────────────────────────────────────┬───────────────────────┘
          │                                    │
          ▼                                    ▼
@@ -33,9 +35,9 @@
 │  - team_members     │          │  - Gmail or any SMTP provider      │
 │  - submissions      │          │  - Configured via .env             │
 │  - employees        │          │                                    │
-├─────────────────────┤          │                                    │
-│  Storage:           │          │                                    │
-│  - uploads bucket   │          │                                    │
+├─────────────────────┤          │  MIRO API (optional)               │
+│  Storage:           │          │  - Create farewell collage boards  │
+│  - uploads bucket   │          │  - Auto-place photos + messages    │
 │    (photos, notes)  │          │                                    │
 └─────────────────────┘          └────────────────────────────────────┘
 ```
@@ -100,6 +102,7 @@ The main entry point. Handles:
 | `get_employees()` | Return active employees (with exclusion filter) |
 | `serve_upload()` | Serve uploaded files |
 | `send_email()` | Send email via SMTP |
+| `create_miro_collage()` | Create Miro board with photos + messages |
 
 ### Email Service (SMTP)
 

@@ -26,6 +26,8 @@ Main table storing each farewell card event.
 | `deadline` | timestamp | Submission deadline |
 | `message` | text | Message template for invitations |
 | `access_code` | text | Unique code for admin URL |
+| `google_drive_folder_url` | text | Link to Google Drive folder (optional) |
+| `miro_board_url` | text | Link to Miro collage board (optional) |
 | `created_at` | timestamp | Auto-set on creation |
 
 **Access Code**: Generated automatically by Supabase trigger. Used in admin URL:
@@ -191,6 +193,23 @@ The `employees` table contains all Pandata team members:
 To deactivate an employee:
 ```sql
 UPDATE employees SET is_active = false WHERE email = 'email@pandata.de';
+```
+
+## Migrations
+
+### Add Miro Board URL (if upgrading from older version)
+```sql
+ALTER TABLE farewell_events ADD COLUMN IF NOT EXISTS miro_board_url TEXT;
+```
+
+### Add Google Drive Folder URL (if upgrading from older version)
+```sql
+ALTER TABLE farewell_events ADD COLUMN IF NOT EXISTS google_drive_folder_url TEXT;
+```
+
+### Add photo_urls to submissions (for multiple photos)
+```sql
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS photo_urls TEXT;
 ```
 
 ## Queries

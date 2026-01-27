@@ -105,7 +105,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <button onclick="sendInvitations()" id="sendInvitationsBtn"
                     class="py-3 px-4 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark transition-colors shadow-md flex items-center justify-center text-sm font-medium">
                 <i class="fas fa-envelope mr-2"></i>
@@ -126,6 +126,23 @@
                 <i class="fas fa-download mr-2"></i>
                 Download ZIP
             </button>
+        </div>
+
+        <!-- Miro Collage Button -->
+        <div id="miroSection" class="hidden mb-8">
+            <div class="flex items-center gap-3">
+                <button onclick="createMiroCollage()" id="createMiroBtn"
+                        class="py-3 px-6 bg-[#FFD02F] text-pandata-charcoal rounded-lg hover:bg-[#f5c518] transition-colors shadow-md flex items-center justify-center text-sm font-semibold">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.392 0H13.9L17 4.808 10.444 0H6.949l3.102 6.3L3.494 0H0l3.05 8.131L0 24h3.494l6.557-15.063L7.05 24h3.494L17 8.131 13.95 24h3.443l6.607-24h-3.557l-3.05 8.808L20.392 0h-3z"/>
+                    </svg>
+                    Create Miro Collage
+                </button>
+                <a id="miroLink" href="#" target="_blank" class="hidden py-3 px-4 bg-white border-2 border-[#FFD02F] text-pandata-charcoal rounded-lg hover:bg-[#FFD02F]/10 transition-colors shadow-md flex items-center justify-center text-sm font-medium">
+                    <i class="fas fa-external-link-alt mr-2"></i>
+                    Open in Miro
+                </a>
+            </div>
         </div>
 
         <!-- Notification -->
@@ -224,7 +241,26 @@
             if (data.members.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No team members added yet</td></tr>';
             } else {
-                tbody.innerHTML = data.members.map(member => {
+                // Sort members: 1) by status (Submitted → Invited → Not Invited), 2) alphabetically by name
+                const sortedMembers = [...data.members].sort((a, b) => {
+                    // Get status priority: Submitted = 1, Invited = 2, Not Invited = 3
+                    const getStatusPriority = (m) => {
+                        if (m.hasSubmitted) return 1;
+                        if (m.invitedAt) return 2;
+                        return 3;
+                    };
+                    
+                    const statusA = getStatusPriority(a);
+                    const statusB = getStatusPriority(b);
+                    
+                    // First sort by status
+                    if (statusA !== statusB) return statusA - statusB;
+                    
+                    // Then sort alphabetically by name
+                    return a.name.localeCompare(b.name);
+                });
+                
+                tbody.innerHTML = sortedMembers.map(member => {
                     // Determine status
                     let statusBadge;
                     let rowClass = '';
@@ -389,7 +425,60 @@
             }, 2000);
         }
 
+        async function checkMiroStatus() {
+            try {
+                const response = await fetch('/api/miro/status');
+                const data = await response.json();
+                
+                if (data.configured) {
+                    document.getElementById('miroSection').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking Miro status:', error);
+            }
+        }
+
+        async function createMiroCollage() {
+            if (!eventData || eventData.stats.submitted === 0) {
+                showNotification('No submissions yet. Wait for some messages before creating a collage!', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('createMiroBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Collage...';
+
+            try {
+                const response = await fetch(`/api/admin/${accessCode}/create-miro-collage`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Miro collage created with ${result.itemCount} submission(s)!`);
+                    
+                    // Show link to the board
+                    const miroLink = document.getElementById('miroLink');
+                    miroLink.href = result.boardUrl;
+                    miroLink.classList.remove('hidden');
+                    
+                    // Open in new tab
+                    window.open(result.boardUrl, '_blank');
+                } else {
+                    showNotification(result.error || 'Error creating Miro collage', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.392 0H13.9L17 4.808 10.444 0H6.949l3.102 6.3L3.494 0H0l3.05 8.131L0 24h3.494l6.557-15.063L7.05 24h3.494L17 8.131 13.95 24h3.443l6.607-24h-3.557l-3.05 8.808L20.392 0h-3z"/>
+            </svg>Create Miro Collage`;
+        }
+
         loadData();
+        checkMiroStatus();
         // Refresh data every 30 seconds
         setInterval(loadData, 30000);
     </script>
