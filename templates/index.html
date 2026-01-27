@@ -110,13 +110,6 @@
                                       placeholder="This will be auto-filled with a template..."></textarea>
                             <p class="text-xs text-gray-500 mt-1">A standard template will appear when you enter the honoree's name</p>
                         </div>
-                        <div class="p-3 bg-pandata-gray-light rounded-lg">
-                            <p class="text-sm text-pandata-charcoal">
-                                <i class="fab fa-google-drive text-pandata-red mr-2"></i>
-                                <strong>Google Drive:</strong> A folder will be automatically created
-                            </p>
-                            <p class="text-xs text-pandata-gray mt-1">Format: YYMM FirstName (e.g. "2601 Julian")</p>
-                        </div>
                     </div>
                 </div>
 
@@ -280,7 +273,6 @@
                 organizerEmail: formData.get('organizerEmail'),
                 deadline: formData.get('deadline'),
                 message: formData.get('message'),
-                googleDriveFolderUrl: formData.get('googleDriveFolderUrl'),
                 teamMembers: teamMembers
             };
 

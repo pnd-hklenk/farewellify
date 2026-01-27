@@ -185,17 +185,6 @@
                     </div>
                 </div>
 
-                <div id="driveSection" class="hidden border-t pt-6">
-                    <h3 class="text-sm font-medium text-gray-700 mb-3">
-                        <i class="fab fa-google-drive text-green-500 mr-1"></i>
-                        Or upload directly to our shared folder
-                    </h3>
-                    <a id="driveLink" href="#" target="_blank"
-                       class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
-                        <i class="fab fa-google-drive mr-2"></i>
-                        Open Google Drive Folder
-                    </a>
-                </div>
 
                 <div class="pt-4">
                     <button type="submit"
@@ -277,11 +266,6 @@
                     
                     // Collapse identity fields since we know who they are
                     document.getElementById('identityFields').classList.add('hidden');
-                }
-                
-                if (event.google_drive_folder_url) {
-                    document.getElementById('driveLink').href = event.google_drive_folder_url;
-                    document.getElementById('driveSection').classList.remove('hidden');
                 }
                 
                 const deadline = new Date(event.deadline);

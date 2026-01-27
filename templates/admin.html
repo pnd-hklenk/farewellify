@@ -454,9 +454,7 @@ This is your personalized link – no login required!`;
                 if (data.emailConfigured) {
                     statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-pandata-red';
                     statusText.textContent = 'Email Ready';
-                    let features = [`📧 ${data.emailProvider}`];
-                    if (data.driveConfigured) features.push('📁 Drive');
-                    emailFromText.innerHTML = `Sending from: ${data.emailFrom} <span class="text-pandata-gray">(${features.join(', ')})</span>`;
+                    emailFromText.innerHTML = `Sending from: ${data.emailFrom} <span class="text-pandata-gray">(📧 ${data.emailProvider})</span>`;
                     statusBadge.classList.remove('hidden');
                 } else {
                     statusCard.className = 'bg-white rounded-lg p-4 mb-8 shadow-md border-l-4 border-yellow-500';
