@@ -38,13 +38,11 @@ Content-Type: application/json
     ...
   },
   "adminUrl": "/admin/abc12345",
-  "submitUrl": "/submit/{event_id}",
-  "driveFolderUrl": "https://drive.google.com/drive/folders/..."
+  "submitUrl": "/submit/{event_id}"
 }
 ```
 
 **Notes:**
-- If Google Drive is connected, a folder is auto-created
 - The honoree is automatically excluded from team members
 
 ---
@@ -148,8 +146,7 @@ GET /api/admin/{access_code}
     "organizerName": "Hannah Klenk",
     "organizerEmail": "hannah.klenk@pandata.de",
     "deadline": "2026-01-30T11:00:00",
-    "message": "Hi Pandatas...",
-    "googleDriveFolderUrl": "https://..."
+    "message": "Hi Pandatas..."
   },
   "teamMembers": [
     {
@@ -209,82 +206,27 @@ GET /api/employees?exclude=julian.arnold@pandata.de&exclude=hannah.klenk@pandata
 
 ---
 
-## Gmail/Google Integration
+## Email Status
 
-### Check Status
+### Check Email Configuration
 
 ```http
-GET /api/gmail/status
+GET /api/email/status
 ```
 
-**Response (connected):**
+**Response (configured):**
 ```json
 {
-  "connected": true,
-  "driveConnected": true,
-  "available": true,
-  "email": "hannah.klenk@pandata.de",
-  "credentialsConfigured": true
+  "emailConfigured": true
 }
 ```
 
 **Response (not configured):**
 ```json
 {
-  "connected": false,
-  "available": true,
-  "credentialsConfigured": false
+  "emailConfigured": false
 }
 ```
-
----
-
-### Start OAuth Flow
-
-```http
-GET /api/gmail/connect
-```
-
-**Response:**
-```json
-{
-  "authUrl": "https://accounts.google.com/o/oauth2/..."
-}
-```
-
-**Notes:**
-- Redirect user to `authUrl` for Google consent
-- After consent, Google redirects to `/api/gmail/callback`
-
----
-
-### OAuth Callback
-
-```http
-GET /api/gmail/callback?code={auth_code}&state={state}
-```
-
-**Response:**
-Redirects to `/` with tokens stored in `gmail_token.json`
-
----
-
-### Disconnect
-
-```http
-POST /api/gmail/disconnect
-```
-
-**Response:**
-```json
-{
-  "success": true
-}
-```
-
-**Notes:**
-- Deletes `gmail_token.json`
-- Google connection must be re-established
 
 ---
 

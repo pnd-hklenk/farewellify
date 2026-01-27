@@ -5,7 +5,7 @@
 - Python 3.8+
 - pip3
 - A Supabase account (already configured)
-- Google account (for email/Drive features)
+- SMTP credentials (for email features)
 
 ## Local Setup
 
@@ -48,17 +48,16 @@ App runs at http://localhost:5001
 ```
 farewellify/
 ├── app.py                 # Main Flask app - all routes here
-├── gmail_auth.py          # Google OAuth logic
 ├── requirements.txt       # Dependencies
 ├── .env                   # Secrets (gitignored)
 ├── .env.example           # Template
-├── gmail_credentials.json # Google OAuth client (gitignored)
-├── gmail_token.json       # OAuth tokens (gitignored, auto-created)
 ├── uploads/               # Uploaded files (auto-created)
 ├── templates/
 │   ├── index.html         # Create event form
 │   ├── admin.html         # Admin dashboard
 │   └── submit.html        # Team submission form
+├── assets/
+│   └── farewellify-logo.png  # App logo
 ├── docs/                  # Documentation
 └── .cursor/rules/         # AI agent instructions
 ```
@@ -69,11 +68,10 @@ farewellify/
 
 The Flask app is a single file. Key sections:
 
-1. **Configuration** (lines 1-50) - Imports, env vars, constants
-2. **Email functions** (lines 50-90) - SMTP and Gmail sending
-3. **Gmail OAuth routes** (lines 90-170) - Connect/disconnect/callback
-4. **Page routes** (lines 170-210) - HTML page serving
-5. **API routes** (lines 210-500) - REST endpoints
+1. **Configuration** - Imports, env vars, constants
+2. **Email functions** - SMTP email sending
+3. **Page routes** - HTML page serving
+4. **API routes** - REST endpoints
 
 ### Frontend (templates/)
 
@@ -186,11 +184,10 @@ employees = [e for e in result.data if e['email'] not in excluded]
    - [ ] Submit with file upload
    - [ ] Check admin dashboard shows submission
 
-4. **Google Integration**
-   - [ ] Connect Gmail
-   - [ ] Create event → check Drive folder created
+4. **Email**
+   - [ ] Check SMTP credentials are configured
    - [ ] Send invitation → check email received
-   - [ ] Disconnect → check status updates
+   - [ ] Send reminder → check email received
 
 ### API Testing with curl
 
@@ -209,8 +206,8 @@ curl -X POST http://localhost:5001/api/events \
 # Get employees
 curl "http://localhost:5001/api/employees?exclude=julian@pandata.de"
 
-# Check Gmail status
-curl http://localhost:5001/api/gmail/status
+# Check email status
+curl http://localhost:5001/api/email/status
 ```
 
 ## Common Issues

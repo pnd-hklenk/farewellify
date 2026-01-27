@@ -25,7 +25,6 @@ Main table storing each farewell card event.
 | `organizer_email` | text | Organizer's email |
 | `deadline` | timestamp | Submission deadline |
 | `message` | text | Message template for invitations |
-| `google_drive_folder_url` | text | Auto-created Drive folder URL |
 | `access_code` | text | Unique code for admin URL |
 | `created_at` | timestamp | Auto-set on creation |
 
@@ -99,7 +98,6 @@ Master list of all Pandata employees.
 │ organizer_email     │       │ invited_at          │
 │ deadline            │       │ reminder_sent_at    │
 │ message             │       └──────────┬──────────┘
-│ google_drive_url    │                  │
 │ access_code         │                  │
 └─────────────────────┘                  │
                                          │
@@ -131,7 +129,6 @@ CREATE TABLE farewell_events (
     organizer_email TEXT NOT NULL,
     deadline TIMESTAMP WITH TIME ZONE NOT NULL,
     message TEXT,
-    google_drive_folder_url TEXT,
     access_code TEXT UNIQUE DEFAULT substr(md5(random()::text), 1, 8),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

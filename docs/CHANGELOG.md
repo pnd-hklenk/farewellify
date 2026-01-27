@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-01-27] - Production Ready Release
+
+### Changed
+
+#### Organizer Participation
+- **Organizer can now participate**: The organizer is no longer excluded from the team members list
+- Organizer can select themselves to receive a personalized link and upload their own photos/messages
+- Only the **honoree** is excluded from all communications (as before)
+
+#### Documentation Cleanup
+- Removed Google Drive references (feature deprecated)
+- Updated email configuration to use SMTP instead of Resend
+- Translated remaining German text to English ("Ein Ordner wird automatisch erstellt" → "A folder will be automatically created")
+- Updated all documentation to reflect current feature set
+
+---
+
 ## [2026-01-27] - File Upload Fixes & Email Improvements
 
 ### Fixed

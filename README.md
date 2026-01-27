@@ -1,6 +1,6 @@
 # Farewellify 🎉
 
-A web app for organizing farewell cards at Pandata. Collect messages from the team, track submissions, send reminders, and store everything in Google Drive.
+A web app for organizing farewell cards at Pandata. Collect messages from the team, track submissions, and send reminders.
 
 ## Quick Links
 
@@ -14,9 +14,8 @@ A web app for organizing farewell cards at Pandata. Collect messages from the te
 
 - ✅ **Employee List** - All Pandata employees pre-loaded, auto-excludes honoree
 - ✅ **Personalized Links** - Each team member gets their own link (no login required)
-- ✅ **Gmail Integration** - Send invitations and reminders directly from the app
-- ✅ **Google Drive** - Auto-creates folders in format `YYMM FirstName` (e.g., "2601 Julian")
-- ✅ **File Uploads** - Team members can upload PDFs, images, or type messages
+- ✅ **Email Integration** - Send invitations and reminders directly from the app (via SMTP)
+- ✅ **File Uploads** - Team members can upload PDFs, images, or type messages (max 50MB)
 - ✅ **Pandata Branding** - Corporate design (colors, fonts) applied
 
 ## Getting Started
@@ -64,7 +63,6 @@ For Gmail, use an [App Password](https://support.google.com/accounts/answer/1858
 | [Database](docs/DATABASE.md) | Tables, schemas, Supabase setup |
 | [API Reference](docs/API.md) | All REST endpoints |
 | [Email Setup](docs/EMAIL_SETUP.md) | SMTP email configuration |
-| [Google Drive](docs/GOOGLE_INTEGRATION.md) | Drive OAuth for auto-folders (optional) |
 | [Development](docs/DEVELOPMENT.md) | Local development guide |
 | [Changelog](docs/CHANGELOG.md) | Version history and changes |
 
@@ -73,7 +71,6 @@ For Gmail, use an [App Password](https://support.google.com/accounts/answer/1858
 ```
 farewellify/
 ├── app.py                 # Flask application (main entry point)
-├── gmail_auth.py          # Google OAuth (Gmail + Drive)
 ├── requirements.txt       # Python dependencies
 ├── .env                   # Environment variables (secrets)
 ├── .env.example           # Template for .env
@@ -87,7 +84,7 @@ farewellify/
 │   ├── ARCHITECTURE.md    # System architecture
 │   ├── DATABASE.md        # Database schema
 │   ├── API.md             # API documentation
-│   ├── GOOGLE_INTEGRATION.md
+│   ├── EMAIL_SETUP.md     # Email configuration
 │   └── DEVELOPMENT.md
 ├── uploads/               # Uploaded files (created automatically)
 └── .cursor/rules/         # AI agent instructions
@@ -99,7 +96,7 @@ farewellify/
 - **Database**: Supabase (PostgreSQL)
 - **Frontend**: HTML + Tailwind CSS
 - **Email**: SMTP (Gmail or any SMTP provider)
-- **Storage**: Google Drive API (optional) + local uploads
+- **Storage**: Local uploads (max 50MB per file)
 
 ## Key Concepts
 
@@ -117,8 +114,3 @@ The person leaving (honoree) is **always excluded** from:
 - All email communications
 
 This ensures the farewell card stays a surprise.
-
-### Auto-Folders
-When an event is created with Google Drive connected, a folder is automatically created:
-- **Location**: Pandata farewell cards folder
-- **Format**: `YYMM FirstName` (e.g., "2601 Julian" for January 2026)

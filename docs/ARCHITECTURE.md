@@ -28,14 +28,12 @@
 ┌─────────────────────┐          ┌────────────────────────────────────┐
 │      SUPABASE       │          │         EXTERNAL SERVICES          │
 │    (PostgreSQL)     │          ├────────────────────────────────────┤
-├─────────────────────┤          │  RESEND (resend.com)               │
-│ - farewell_events   │          │  - Send transactional emails       │
-│ - team_members      │          │  - No OAuth required (API key)     │
-│ - submissions       │          │                                    │
-│ - employees         │          │  GOOGLE DRIVE (optional)           │
-└─────────────────────┘          │  - Create folders via OAuth        │
-                                 │  - Token stored in gmail_token.json│
-                                 └────────────────────────────────────┘
+├─────────────────────┤          │  SMTP EMAIL                        │
+│ - farewell_events   │          │  - Send invitations & reminders    │
+│ - team_members      │          │  - Gmail or any SMTP provider      │
+│ - submissions       │          │  - Configured via .env             │
+│ - employees         │          │                                    │
+└─────────────────────┘          └────────────────────────────────────┘
 ```
 
 ## Data Flow
@@ -45,7 +43,6 @@
 ```
 User fills form → POST /api/events
                        │
-                       ├─→ Create Drive folder (if connected)
                        ├─→ Insert into farewell_events
                        ├─→ Insert team_members (excluding honoree!)
                        │
@@ -63,7 +60,7 @@ Admin clicks "Send Invitations" → POST /api/events/{id}/send-invitations
                                         └─→ For each member:
                                               ├─→ Generate personalized link (?email=xxx)
                                               ├─→ Build HTML email with first name greeting
-                                              ├─→ Send via Resend API
+                                              ├─→ Send via SMTP
                                               └─→ Update invited_at timestamp
 ```
 
@@ -98,27 +95,17 @@ The main entry point. Handles:
 | `get_admin_data()` | Return all event data for admin dashboard |
 | `get_employees()` | Return active employees (with exclusion filter) |
 | `serve_upload()` | Serve uploaded files |
-| `send_email()` | Send email via Resend API |
+| `send_email()` | Send email via SMTP |
 
-### gmail_auth.py (Google Drive Integration)
+### Email Service (SMTP)
 
-Handles OAuth 2.0 for Google Drive (optional, for auto-folder creation):
-
-| Function | Purpose |
-|----------|---------|
-| `start_auth_flow()` | Begin OAuth, return Google consent URL |
-| `complete_auth_flow()` | Handle callback, save tokens |
-| `create_farewell_folder()` | Create Drive folder with `YYMM Vorname` format |
-| `is_drive_connected()` | Check if Drive tokens are valid |
-| `get_drive_service()` | Get authenticated Drive API client |
-
-### Email Service (Resend)
-
-Emails are sent via [Resend](https://resend.com) API:
+Emails are sent via SMTP:
 
 | Feature | Implementation |
 |---------|----------------|
-| API Key | `RESEND_API_KEY` environment variable |
+| SMTP Host | `SMTP_HOST` environment variable (default: smtp.gmail.com) |
+| SMTP Port | `SMTP_PORT` environment variable (default: 587) |
+| Credentials | `SMTP_USER` and `SMTP_PASSWORD` environment variables |
 | From address | `EMAIL_FROM` environment variable |
 | Personalization | First name greeting ("Hi Adam,") |
 | No login required | Personalized links with `?email=xxx` |
@@ -154,17 +141,18 @@ The honoree must NEVER receive any communication:
 2. **Backend**: `create_event()` skips honoree when adding team members
 3. **Double-check**: Even if somehow added, they'd need to know the submit URL
 
+### Organizer Participation
+
+The organizer CAN participate in the farewell card:
+- Organizer appears in the team members list and can select themselves
+- They receive a personalized link like everyone else
+- This allows the organizer to also upload photos and messages
+
 ### Personalized Links
 
 - Links contain email in query param: `?email=xxx`
 - No authentication required (by design - for ease of use)
 - Email is trusted because we control who receives the link
-
-### OAuth Tokens
-
-- Stored in `gmail_token.json` (gitignored)
-- Refresh token enables long-term access
-- Can be revoked via Google account or app's disconnect button
 
 ## File Storage
 
@@ -173,9 +161,3 @@ The honoree must NEVER receive any communication:
 - Files renamed to: `{event_id}_{uuid}.{ext}` or `{event_id}_msg_{uuid}.{ext}` for handwritten notes
 - Max size: 50MB
 - Allowed types: PDF, JPG, PNG
-
-### Google Drive
-- Folders created in shared parent folder
-- ID: `1r0vtpUvIrJdpKiBDmA6MbH9EQ81c0HlM`
-- Format: `YYMM Vorname` (e.g., "2601 Julian")
-- Permissions: Anyone with link can edit
