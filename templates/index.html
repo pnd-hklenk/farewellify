@@ -183,19 +183,15 @@
         let employees = [];
         let createdAdminUrl = '';
 
-        // Load employees from database (excluding honoree completely)
+        // Load employees from database (excluding honoree only - organizer can participate!)
         async function loadEmployees() {
             try {
                 const honoreeEmail = document.querySelector('[name="honoreeEmail"]').value;
-                const organizerEmail = document.querySelector('[name="organizerEmail"]').value;
                 
-                // Build URL with exclusions - honoree is NEVER shown
+                // Build URL with exclusions - only honoree is excluded
                 let url = '/api/employees';
-                const exclude = [];
-                if (honoreeEmail) exclude.push(honoreeEmail);
-                if (organizerEmail) exclude.push(organizerEmail);
-                if (exclude.length > 0) {
-                    url += '?' + exclude.map(e => `exclude=${encodeURIComponent(e)}`).join('&');
+                if (honoreeEmail) {
+                    url += `?exclude=${encodeURIComponent(honoreeEmail)}`;
                 }
                 
                 const response = await fetch(url);
@@ -244,9 +240,8 @@
             updateSelectedCount();
         }
 
-        // Reload employees when honoree or organizer changes (they get excluded completely)
+        // Reload employees when honoree changes (only honoree is excluded)
         document.querySelector('[name="honoreeEmail"]').addEventListener('change', loadEmployees);
-        document.querySelector('[name="organizerEmail"]').addEventListener('change', loadEmployees);
         
         // Update default message when honoree name changes
         document.querySelector('[name="honoreeName"]').addEventListener('input', (e) => {
