@@ -22,7 +22,7 @@ The `.env` file should contain:
 
 ```bash
 # Supabase (already configured)
-SUPABASE_URL=https://yjmtfjfiqqnslpmphboy.supabase.co
+SUPABASE_URL=https://datpxrveaizpigltowju.supabase.co
 SUPABASE_KEY=your-key-here
 
 # Flask secret (for OAuth sessions)

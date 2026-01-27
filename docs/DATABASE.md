@@ -5,7 +5,7 @@ The app uses **Supabase** (PostgreSQL) for data storage.
 ## Connection
 
 ```
-URL: https://yjmtfjfiqqnslpmphboy.supabase.co
+URL: https://datpxrveaizpigltowju.supabase.co
 ```
 
 Credentials are in `.env` - see `.env.example` for the template.
