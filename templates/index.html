@@ -233,7 +233,8 @@
             updateSelectedCount();
         }
 
-        // Reload employees when honoree changes (only honoree is excluded)
+        // Reload employees when honoree email changes (use input for autofill compatibility)
+        document.querySelector('[name="honoreeEmail"]').addEventListener('input', loadEmployees);
         document.querySelector('[name="honoreeEmail"]').addEventListener('change', loadEmployees);
         
         // Update default message when honoree name changes
@@ -259,12 +260,15 @@
             
             const formData = new FormData(e.target);
             
-            // Get selected employees
+            // Get selected employees, always excluding the honoree (safety check for autofill edge cases)
+            const honoreeEmailVal = (formData.get('honoreeEmail') || '').toLowerCase().trim();
             const selectedEmails = Array.from(document.querySelectorAll('[name="selectedEmployees"]:checked:not(:disabled)'));
-            const teamMembers = selectedEmails.map(cb => ({
-                name: cb.dataset.name,
-                email: cb.value
-            }));
+            const teamMembers = selectedEmails
+                .filter(cb => cb.value.toLowerCase().trim() !== honoreeEmailVal)
+                .map(cb => ({
+                    name: cb.dataset.name,
+                    email: cb.value
+                }));
 
             const data = {
                 honoreeName: formData.get('honoreeName'),
