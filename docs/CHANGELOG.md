@@ -4,6 +4,67 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-01-27] - Miro Collage Integration
+
+### Added
+
+#### Miro Integration (`app.py`)
+- **New feature: Create Miro Collage** - Automatically generate a farewell collage board in Miro from all submissions
+- **Grid layout algorithm** - Photos are distributed in a non-overlapping grid based on submission count
+- **Decorative frame** - White background with red border (Pandata branding)
+- **Title banner** - Red banner with white "FAREWELL [NAME]!" text
+- **Photo arrangement** - Multiple photos per person arranged in a fan/stack pattern with rotation
+- **Sticky notes** - Messages displayed on colored sticky notes (rotating through 8 colors)
+- **Message format** - `"Message text..."` followed by `– FirstName` at the bottom
+
+#### New API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/{code}/create-miro-collage` | POST | Create Miro board from submissions |
+| `/api/miro/status` | GET | Check if Miro is configured |
+
+#### New Functions
+| Function | Purpose |
+|----------|---------|
+| `create_miro_board()` | Create a new board in Miro team |
+| `add_miro_image()` | Add photo with position, size, rotation |
+| `add_miro_sticky_note()` | Add colored sticky note |
+| `add_miro_text()` | Add text element |
+| `add_miro_shape()` | Add rectangle/frame |
+| `calculate_grid_positions()` | Calculate non-overlapping positions |
+| `get_sticky_color()` | Get rotating sticky note color |
+
+#### Admin Dashboard (`templates/admin.html`)
+- **New button**: "Create Miro Collage" (yellow, Miro branding)
+- **Auto-detection**: Button only shows if Miro is configured
+- **Direct link**: After creation, "Open in Miro" link appears
+
+### Configuration
+
+Add to `.env`:
+```
+MIRO_ACCESS_TOKEN=your-access-token
+MIRO_TEAM_ID=your-team-id
+```
+
+### Database Migration
+
+Run in Supabase SQL Editor:
+```sql
+ALTER TABLE farewell_events ADD COLUMN IF NOT EXISTS miro_board_url TEXT;
+```
+
+### Files Modified
+- `app.py` - Miro API integration, collage generation
+- `templates/admin.html` - Miro button and JavaScript
+- `docs/ARCHITECTURE.md` - Miro integration documentation
+- `docs/DATABASE.md` - miro_board_url column
+- `docs/CHANGELOG.md` - This entry
+- `README.md` - Miro feature and setup instructions
+- `.env.example` - Miro configuration variables
+
+---
+
 ## [2026-01-27] - Production Ready Release
 
 ### Changed

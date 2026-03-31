@@ -184,3 +184,75 @@ The admin dashboard provides a "Download ZIP" button that:
 1. Fetches all files from Supabase Storage
 2. Creates a ZIP with all photos and notes
 3. Includes `00_messages_summary.txt` with all text messages
+
+## Miro Integration
+
+The app can automatically create a Miro collage board from all submissions.
+
+### Setup
+
+1. Create a Miro app at https://miro.com/app/settings/user-profile/apps
+2. Copy the access token to `.env`:
+   ```
+   MIRO_ACCESS_TOKEN=your-token
+   MIRO_TEAM_ID=your-team-id
+   ```
+3. Team ID can be found in the URL when viewing team settings
+
+### How It Works
+
+```
+Admin clicks "Create Miro Collage"
+         │
+         ▼
+POST /api/admin/{code}/create-miro-collage
+         │
+         ├─→ Create new Miro board
+         ├─→ Add decorative frame (white bg + red border)
+         ├─→ Add title bar "FAREWELL [NAME]!"
+         │
+         └─→ For each submission:
+               ├─→ Calculate grid position (no overlapping)
+               ├─→ Add photos (fan/stack layout with rotation)
+               ├─→ Add handwritten notes as images
+               └─→ Add sticky note with message + first name
+```
+
+### Collage Layout
+
+The collage uses a **grid layout** with these features:
+
+| Feature | Implementation |
+|---------|----------------|
+| **Frame** | White background with 12px red border |
+| **Title** | Red banner with white text "FAREWELL [NAME]!" |
+| **Grid** | Dynamic columns (2-5) based on submission count |
+| **Photos** | Fan/stack arrangement with slight rotation |
+| **Sticky Notes** | Rotating colors (yellow, pink, violet, green, blue, cyan) |
+| **Message Format** | `"Message text..."` followed by `– FirstName` |
+
+### Board Sizing
+
+| Submissions | Board Size |
+|-------------|------------|
+| 1-4 | 2500 x 2000 |
+| 5-9 | 3500 x 2800 |
+| 10-16 | 4500 x 3500 |
+| 17+ | 5500 x 4500 |
+
+### Miro API Functions
+
+| Function | Purpose |
+|----------|---------|
+| `create_miro_board()` | Create a new board in the team |
+| `add_miro_image()` | Add photo with position, size, rotation |
+| `add_miro_sticky_note()` | Add colored sticky note |
+| `add_miro_text()` | Add text element |
+| `add_miro_shape()` | Add rectangle/frame |
+| `calculate_grid_positions()` | Calculate non-overlapping positions |
+
+### Limitations
+
+- Miro API doesn't support PDF images (only JPEG, PNG, GIF, WebP)
+- `borderWidth` must be > 1.0 (Miro requirement)
+- Max ~30 photos recommended for good performance

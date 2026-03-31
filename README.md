@@ -16,6 +16,8 @@ A web app for organizing farewell cards at Pandata. Collect messages from the te
 - ✅ **Personalized Links** - Each team member gets their own link (no login required)
 - ✅ **Email Integration** - Send invitations and reminders directly from the app (via SMTP)
 - ✅ **File Uploads** - Team members can upload PDFs, images, or type messages (max 50MB)
+- ✅ **Miro Collage** - Auto-generate a beautiful farewell collage board in Miro
+- ✅ **Download ZIP** - Export all photos and messages as a ZIP file
 - ✅ **Pandata Branding** - Corporate design (colors, fonts) applied
 
 ## Getting Started
@@ -54,6 +56,23 @@ EMAIL_FROM=no-reply@pandata.de
 ```
 
 For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular password).
+
+### 5. Configure Miro (optional)
+
+To enable the "Create Miro Collage" feature:
+
+1. Go to https://miro.com/app/settings/user-profile/apps
+2. Click "Create new app"
+3. Give it a name (e.g., "Farewellify")
+4. Select your team and set permissions: `boards:read`, `boards:write`
+5. Copy the access token and add to `.env`:
+
+```bash
+MIRO_ACCESS_TOKEN=your-access-token
+MIRO_TEAM_ID=your-team-id
+```
+
+The Team ID is in the URL when you view team settings: `https://miro.com/app/settings/team/{TEAM_ID}/`
 
 ## Documentation
 

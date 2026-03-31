@@ -81,7 +81,16 @@ def allowed_file(filename):
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://datpxrveaizpigltowju.supabase.co')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
 SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'uploads')
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_KEY else None
+
+# Initialize Supabase client with explicit options to avoid schema cache issues
+supabase: Client = None
+if SUPABASE_KEY:
+    from supabase.client import ClientOptions
+    supabase = create_client(
+        SUPABASE_URL, 
+        SUPABASE_KEY,
+        options=ClientOptions(schema='public')
+    )
 
 
 def upload_to_supabase_storage(file_data: bytes, filename: str) -> str:
@@ -877,7 +886,6 @@ import math
 
 # Sticky note colors - rotating through these for variety (like in Josef/Lorenzo/Mascha examples)
 STICKY_COLORS = [
-    'light_yellow',   # Gelb
     'yellow',         # Kräftiges Gelb
     'light_pink',     # Rosa
     'pink',           # Pink
@@ -885,6 +893,7 @@ STICKY_COLORS = [
     'light_green',    # Hellgrün
     'light_blue',     # Hellblau
     'cyan',           # Türkis
+    'light_yellow',   # Helles Gelb
 ]
 
 
@@ -942,7 +951,7 @@ def add_miro_image(board_id: str, image_url: str, x: float, y: float, width: int
     return miro_api_request('POST', f'/boards/{board_id}/images', data)
 
 
-def add_miro_sticky_note(board_id: str, content: str, x: float, y: float, color: str = 'light_yellow', width: int = 199) -> dict:
+def add_miro_sticky_note(board_id: str, content: str, x: float, y: float, color: str = 'yellow', width: int = 200) -> dict:
     """Add a sticky note to a Miro board"""
     # Miro sticky notes have a max content length
     truncated_content = content[:1000] if content else ''
@@ -986,16 +995,22 @@ def add_miro_text(board_id: str, content: str, x: float, y: float, font_size: in
     return miro_api_request('POST', f'/boards/{board_id}/texts', data)
 
 
-def add_miro_shape(board_id: str, shape: str, x: float, y: float, width: int, height: int, fill_color: str = '#fa4f4f') -> dict:
+def add_miro_shape(board_id: str, shape: str, x: float, y: float, width: int, height: int, fill_color: str = '#fa4f4f', border_color: str = '', border_width: float = 0) -> dict:
     """Add a shape to a Miro board"""
+    style = {
+        'fillColor': fill_color
+    }
+    # Miro requires borderWidth > 1.0, so only add it if specified
+    if border_width > 1.0:
+        style['borderWidth'] = str(border_width)
+        if border_color:
+            style['borderColor'] = border_color
+    
     data = {
         'data': {
             'shape': shape
         },
-        'style': {
-            'fillColor': fill_color,
-            'borderWidth': '0'
-        },
+        'style': style,
         'position': {
             'x': x,
             'y': y,
@@ -1009,54 +1024,58 @@ def add_miro_shape(board_id: str, shape: str, x: float, y: float, width: int, he
     return miro_api_request('POST', f'/boards/{board_id}/shapes', data)
 
 
-def calculate_collage_layout(num_items: int, board_width: int = 3500, board_height: int = 2500):
-    """
-    Calculate positions for all elements in a collage-style layout.
-    Returns a list of (x, y, rotation) tuples for each item.
-    
-    The layout uses zones and semi-random placement for a natural collage feel.
-    """
-    positions = []
-    
-    # Define zones (left, center-left, center-right, right)
-    num_zones = 4
-    zone_width = board_width / num_zones
-    
-    # Calculate rows needed
-    items_per_row = num_zones
-    num_rows = math.ceil(num_items / items_per_row)
-    row_height = min(500, (board_height - 200) / max(num_rows, 1))  # Leave space for title
-    
-    for i in range(num_items):
-        # Determine zone and row
-        zone = i % num_zones
-        row = i // num_zones
-        
-        # Base position (center of zone)
-        base_x = (zone * zone_width) + (zone_width / 2)
-        base_y = 300 + (row * row_height)  # Start below title
-        
-        # Add randomness for natural collage feel
-        # Random offset within zone (up to 30% of zone width)
-        x_offset = random.uniform(-zone_width * 0.2, zone_width * 0.2)
-        y_offset = random.uniform(-row_height * 0.15, row_height * 0.15)
-        
-        # Random rotation (-8 to +8 degrees for natural look)
-        rotation = random.uniform(-8, 8)
-        
-        positions.append({
-            'x': base_x + x_offset,
-            'y': base_y + y_offset,
-            'rotation': rotation,
-            'zone': zone
-        })
-    
-    return positions
-
-
 def get_sticky_color(index: int) -> str:
     """Get a sticky note color, rotating through the palette"""
     return STICKY_COLORS[index % len(STICKY_COLORS)]
+
+
+def calculate_grid_positions(num_items: int, board_width: int, board_height: int, start_y: int = 350):
+    """
+    Calculate grid positions with good spacing for a collage.
+    Each submission gets a dedicated area to avoid overlapping.
+    """
+    positions = []
+    
+    # Determine grid size based on number of items
+    if num_items <= 4:
+        cols = 2
+    elif num_items <= 9:
+        cols = 3
+    elif num_items <= 16:
+        cols = 4
+    else:
+        cols = 5
+    
+    rows = math.ceil(num_items / cols)
+    
+    # Calculate cell sizes with generous padding
+    cell_width = (board_width - 400) / cols  # Leave margin on sides
+    cell_height = (board_height - start_y - 200) / rows  # Leave margin at bottom
+    
+    # Minimum cell size
+    cell_width = max(cell_width, 600)
+    cell_height = max(cell_height, 500)
+    
+    for i in range(num_items):
+        col = i % cols
+        row = i // cols
+        
+        # Center of each cell
+        base_x = 200 + (col * cell_width) + (cell_width / 2)
+        base_y = start_y + (row * cell_height) + (cell_height / 2)
+        
+        # Add slight randomness (but not too much to avoid overlapping)
+        x_jitter = random.uniform(-cell_width * 0.1, cell_width * 0.1)
+        y_jitter = random.uniform(-cell_height * 0.1, cell_height * 0.1)
+        
+        positions.append({
+            'x': base_x + x_jitter,
+            'y': base_y + y_jitter,
+            'cell_width': cell_width,
+            'cell_height': cell_height
+        })
+    
+    return positions, cols, rows, cell_width, cell_height
 
 
 @app.route('/api/admin/<access_code>/create-miro-collage', methods=['POST'])
@@ -1089,28 +1108,54 @@ def create_miro_collage(access_code):
         board_id = board['id']
         board_url = board['viewLink']
         
-        # Board dimensions
-        BOARD_WIDTH = 3500
-        BOARD_HEIGHT = 2500
-        PHOTO_WIDTH = 280
-        STICKY_WIDTH = 220
-        
-        # =====================
-        # 1. ADD TITLE (large, centered, red)
-        # =====================
-        title_text = f'<strong>FAREWELL {honoree_name.upper()}!</strong>'
-        add_miro_text(board_id, title_text, BOARD_WIDTH / 2, 80, font_size=72, color='#fa4f4f')
-        
-        # =====================
-        # 2. CALCULATE LAYOUT
-        # =====================
-        # Count total items (each submission = 1 slot, but may have multiple photos)
+        # Calculate board size based on number of submissions
         num_submissions = len(submissions.data)
-        positions = calculate_collage_layout(num_submissions, BOARD_WIDTH, BOARD_HEIGHT)
         
-        # Shuffle submissions for more random distribution
-        shuffled_submissions = list(submissions.data)
-        random.shuffle(shuffled_submissions)
+        # Dynamic board sizing
+        if num_submissions <= 4:
+            BOARD_WIDTH = 2500
+            BOARD_HEIGHT = 2000
+        elif num_submissions <= 9:
+            BOARD_WIDTH = 3500
+            BOARD_HEIGHT = 2800
+        elif num_submissions <= 16:
+            BOARD_WIDTH = 4500
+            BOARD_HEIGHT = 3500
+        else:
+            BOARD_WIDTH = 5500
+            BOARD_HEIGHT = 4500
+        
+        TITLE_Y = 120
+        CONTENT_START_Y = 350
+        
+        # =====================
+        # 1. ADD DECORATIVE FRAME/BACKGROUND
+        # =====================
+        # Outer frame (red border) - borderWidth must be > 1.0
+        add_miro_shape(board_id, 'rectangle', BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 
+                      BOARD_WIDTH - 40, BOARD_HEIGHT - 40, '#ffffff', '#fa4f4f', 12.0)
+        
+        # Inner decorative line
+        add_miro_shape(board_id, 'rectangle', BOARD_WIDTH / 2, BOARD_HEIGHT / 2,
+                      BOARD_WIDTH - 100, BOARD_HEIGHT - 100, '#fefefe', '#dddddd', 4.0)
+        
+        # =====================
+        # 2. ADD TITLE (large, centered, styled like Josef/Lorenzo)
+        # =====================
+        # Title background bar
+        add_miro_shape(board_id, 'rectangle', BOARD_WIDTH / 2, TITLE_Y, 
+                      BOARD_WIDTH - 200, 140, '#fa4f4f')
+        
+        # Title text (white on red background)
+        title_text = f'<strong>FAREWELL {honoree_name.upper()}!</strong>'
+        add_miro_text(board_id, title_text, BOARD_WIDTH / 2, TITLE_Y, font_size=64, color='#ffffff')
+        
+        # =====================
+        # 3. CALCULATE LAYOUT - Grid with good spacing
+        # =====================
+        positions, cols, rows, cell_w, cell_h = calculate_grid_positions(
+            num_submissions, BOARD_WIDTH, BOARD_HEIGHT, CONTENT_START_Y
+        )
         
         # Track stats
         photos_added = 0
@@ -1118,9 +1163,9 @@ def create_miro_collage(access_code):
         messages_added = 0
         
         # =====================
-        # 3. ADD CONTENT FOR EACH SUBMISSION
+        # 4. ADD CONTENT FOR EACH SUBMISSION
         # =====================
-        for idx, submission in enumerate(shuffled_submissions):
+        for idx, submission in enumerate(submissions.data):
             member_name = submission['team_members']['name'] if submission.get('team_members') else 'Anonymous'
             message = submission.get('message', '')
             file_url = submission.get('file_url')  # Handwritten note
@@ -1128,9 +1173,8 @@ def create_miro_collage(access_code):
             
             # Get position for this submission
             pos = positions[idx]
-            base_x = pos['x']
-            base_y = pos['y']
-            base_rotation = pos['rotation']
+            center_x = pos['x']
+            center_y = pos['y']
             
             # Get color for this submission's sticky note
             sticky_color = get_sticky_color(idx)
@@ -1143,83 +1187,105 @@ def create_miro_collage(access_code):
                 except:
                     pass
             
-            # =====================
-            # 3a. ADD PHOTOS (with slight offset for stacking effect)
-            # =====================
+            # Collect all images
             all_images = []
             
             # Add handwritten note as image if it's an image file
-            if file_url:
-                if file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                    all_images.append({'url': file_url, 'type': 'handwritten'})
-                # If it's a PDF, we'll add it separately or skip (Miro doesn't support PDF images directly)
+            if file_url and file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                all_images.append({'url': file_url, 'type': 'handwritten'})
+                notes_added += 1
             
             # Add photos
             for photo_url in photo_urls:
                 all_images.append({'url': photo_url, 'type': 'photo'})
             
-            # Place images with stacking effect (max 4 per submission to avoid clutter)
-            for img_idx, img in enumerate(all_images[:4]):
-                # Offset each subsequent image slightly
-                img_x = base_x + (img_idx * 40) - 60
-                img_y = base_y + (img_idx * 25) - 40
-                
-                # Vary rotation for each image
-                img_rotation = base_rotation + random.uniform(-5, 5)
-                
-                # Vary size slightly
-                img_width = PHOTO_WIDTH + random.randint(-30, 30)
-                
+            # =====================
+            # 4a. ADD PHOTOS - spread within the cell
+            # =====================
+            photo_size = min(280, cell_w * 0.4)  # Scale photo size based on cell
+            
+            if len(all_images) == 1:
+                # Single image - center it
+                img = all_images[0]
+                rotation = random.uniform(-5, 5)
                 try:
-                    add_miro_image(board_id, img['url'], img_x, img_y, img_width, img_rotation)
+                    add_miro_image(board_id, img['url'], center_x, center_y - 50, int(photo_size), rotation)
                     photos_added += 1
                 except Exception as e:
-                    app.logger.warning(f'Could not add image {img["url"]}: {str(e)}')
+                    app.logger.warning(f'Could not add image: {str(e)}')
+                    
+            elif len(all_images) >= 2:
+                # Multiple images - arrange in a fan/stack pattern (no limit)
+                num_photos = len(all_images)
+                
+                # Adjust photo size based on count
+                if num_photos > 8:
+                    photo_size = min(200, cell_w * 0.3)
+                elif num_photos > 5:
+                    photo_size = min(240, cell_w * 0.35)
+                
+                for img_idx, img in enumerate(all_images):
+                    # Spread photos in a fan pattern
+                    angle_offset = (img_idx - num_photos / 2) * 12  # Degrees between photos
+                    
+                    # Position with offset - spread more when there are many photos
+                    spread_x = min(50, 300 / num_photos)
+                    offset_x = (img_idx - num_photos / 2) * spread_x
+                    offset_y = abs(img_idx - num_photos / 2) * 15 - 50
+                    
+                    img_x = center_x + offset_x
+                    img_y = center_y + offset_y
+                    
+                    # Slight rotation for fan effect (reduced)
+                    rotation = angle_offset * 0.3 + random.uniform(-2, 2)
+                    
+                    # Slightly vary size
+                    size = int(photo_size * (0.95 + random.uniform(0, 0.1)))
+                    
+                    try:
+                        add_miro_image(board_id, img['url'], img_x, img_y, size, rotation)
+                        photos_added += 1
+                    except Exception as e:
+                        app.logger.warning(f'Could not add image: {str(e)}')
             
             # =====================
-            # 3b. ADD HANDWRITTEN NOTE (file_url) as separate image if present
+            # 4b. ADD STICKY NOTE WITH MESSAGE
             # =====================
-            if file_url and file_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                # Already added above
-                notes_added += 1
+            # Get first name only for signature
+            first_name = member_name.split()[0] if member_name else ''
             
-            # =====================
-            # 3c. ADD STICKY NOTE WITH MESSAGE
-            # =====================
             if message:
-                # Position sticky note to the side or below photos
-                sticky_offset_x = random.choice([-1, 1]) * random.randint(150, 220)
-                sticky_offset_y = random.randint(100, 180)
+                # Position sticky note below photos
+                sticky_y = center_y + (cell_h * 0.35)
+                sticky_x = center_x + random.uniform(-50, 50)
                 
-                sticky_x = base_x + sticky_offset_x
-                sticky_y = base_y + sticky_offset_y
+                # Format: Message first, then first name at the bottom
+                sticky_content = f'"{message}"<br><br>– {first_name}'
                 
-                # Format message with name
-                sticky_content = f'<strong>{member_name}</strong><br><br>"{message}"'
+                # Sticky note size based on message length
+                sticky_width = min(280, max(180, len(message) * 1.5))
                 
                 try:
-                    add_miro_sticky_note(board_id, sticky_content, sticky_x, sticky_y, sticky_color, STICKY_WIDTH)
+                    add_miro_sticky_note(board_id, sticky_content, sticky_x, sticky_y, sticky_color, int(sticky_width))
                     messages_added += 1
                 except Exception as e:
                     app.logger.warning(f'Could not add sticky note: {str(e)}')
             
-            # If no photos but has a message, still add the name label
-            elif not all_images and not message:
-                # Add just a name label
+            # If no photos and no message, just add first name label
+            elif not all_images:
                 try:
-                    add_miro_sticky_note(board_id, f'<strong>{member_name}</strong>', base_x, base_y, sticky_color, 150)
+                    add_miro_sticky_note(board_id, first_name, center_x, center_y, sticky_color, 150)
                 except Exception as e:
-                    app.logger.warning(f'Could not add name label: {str(e)}')
+                    app.logger.warning(f'Could not add label: {str(e)}')
         
         # =====================
-        # 4. UPDATE DATABASE
+        # 5. UPDATE DATABASE
         # =====================
         try:
             supabase.table('farewell_events').update({
                 'miro_board_url': board_url
             }).eq('id', event_id).execute()
         except Exception as db_e:
-            # Column might not exist yet, that's okay
             app.logger.warning(f'Could not save miro_board_url: {str(db_e)}')
         
         return jsonify({

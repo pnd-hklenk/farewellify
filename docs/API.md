@@ -178,6 +178,85 @@ GET /api/admin/{access_code}
 
 ---
 
+### Download All Submissions
+
+```http
+GET /api/admin/{access_code}/download-all
+```
+
+**Response:**
+- Returns a ZIP file containing all photos, handwritten notes, and a summary text file
+
+**ZIP Contents:**
+- `00_messages_summary.txt` - All text messages with names
+- `01_Adam_Butz_note.jpg` - Handwritten notes
+- `01_Adam_Butz_photo01.jpg` - Photos (numbered if multiple)
+
+---
+
+### Create Miro Collage
+
+```http
+POST /api/admin/{access_code}/create-miro-collage
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "boardUrl": "https://miro.com/app/board/uXjVGKePJ4s=",
+  "boardId": "uXjVGKePJ4s=",
+  "stats": {
+    "submissions": 2,
+    "photosAdded": 5,
+    "notesAdded": 1,
+    "messagesAdded": 1
+  }
+}
+```
+
+**Error Responses:**
+```json
+{ "error": "Miro API not configured. Please add MIRO_ACCESS_TOKEN and MIRO_TEAM_ID to .env" }  // 400
+{ "error": "No submissions yet. Add some messages before creating a collage!" }  // 400
+{ "error": "Event not found" }  // 404
+```
+
+**Notes:**
+- Requires `MIRO_ACCESS_TOKEN` and `MIRO_TEAM_ID` in `.env`
+- Creates a new board in the configured Miro team
+- Auto-generates grid layout based on submission count
+- Photos are arranged in fan/stack pattern with rotation
+- Messages appear on colored sticky notes with format: `"Message..." – FirstName`
+
+---
+
+## Miro Status
+
+### Check Miro Configuration
+
+```http
+GET /api/miro/status
+```
+
+**Response (configured):**
+```json
+{
+  "configured": true,
+  "teamId": "3074457357930600413"
+}
+```
+
+**Response (not configured):**
+```json
+{
+  "configured": false,
+  "teamId": null
+}
+```
+
+---
+
 ## Employees
 
 ### Get Employees
