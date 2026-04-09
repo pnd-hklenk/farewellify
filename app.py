@@ -217,14 +217,18 @@ def create_event():
     
     result = supabase.table('farewell_events').insert(event_data).execute()
     event = result.data[0]
-    
+
+    # Mark honoree as inactive — they're leaving, remove from future events & notifications
+    honoree_email = data.get('honoreeEmail', '').lower()
+    if honoree_email:
+        supabase.table('employees').update({'is_active': False}).eq('email', honoree_email).execute()
+
     # Add team members (NEVER include the honoree!)
     team_members = data.get('teamMembers', [])
-    honoree_email = data.get('honoreeEmail', '').lower()
     
     for member in team_members:
         # Double-check: never add the honoree as a team member
-        if member['email'].lower() == honoree_email:
+        if member['email'].lower() == honoree_email:  # honoree_email defined above
             continue
             
         member_data = {
@@ -261,16 +265,22 @@ def send_invitations(event_id):
     
     base_url = request.host_url.rstrip('/')
     submit_url = f"{base_url}/submit/{event_id}"
-    
+
+    # Skip members who are inactive (have already left the company)
+    inactive = supabase.table('employees').select('email').eq('is_active', False).execute()
+    inactive_emails = {e['email'] for e in inactive.data}
+
     sent_count = 0
     honoree_first_name = event_data['honoree_name'].split()[0]
-    
+
     # Format deadline as "Thursday, 29.01."
     deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
     weekdays_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
-    
+
     for member in members.data:
+        if member['email'] in inactive_emails:
+            continue
         # Create personalized link for this team member
         personal_link = f"{submit_url}?email={quote(member['email'])}"
         member_first_name = member['name'].split()[0]
@@ -345,15 +355,20 @@ def send_reminders(event_id):
     
     base_url = request.host_url.rstrip('/')
     submit_url = f"{base_url}/submit/{event_id}"
-    
+
+    # Skip members who are inactive (have already left the company)
+    inactive = supabase.table('employees').select('email').eq('is_active', False).execute()
+    inactive_emails = {e['email'] for e in inactive.data}
+    pending_members = [m for m in pending_members if m['email'] not in inactive_emails]
+
     sent_count = 0
     honoree_first_name = event_data['honoree_name'].split()[0]
-    
+
     # Format deadline as "Thursday, 29.01."
     deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
     weekdays_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
-    
+
     for member in pending_members:
         personal_link = f"{submit_url}?email={quote(member['email'])}"
         member_first_name = member['name'].split()[0]
