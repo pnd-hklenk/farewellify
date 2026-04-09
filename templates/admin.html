@@ -363,20 +363,26 @@
                     const allFiles = [];
                     if (member.fileUrl) allFiles.push({ url: member.fileUrl, type: 'note' });
                     if (member.photoUrls) member.photoUrls.forEach(url => allFiles.push({ url, type: 'photo' }));
-                    
+
                     return `
-                    <div class="p-4 bg-pandata-gray-light rounded-lg border-l-4 border-pandata-red">
+                    <div class="p-4 bg-pandata-gray-light rounded-lg border-l-4 ${member.miroAdded ? 'border-[#FFD02F]' : 'border-pandata-red'}">
                         <div class="flex items-start gap-4">
                             <div class="flex-grow min-w-0">
                                 <p class="text-sm font-medium text-pandata-charcoal">${member.name}</p>
                                 ${member.message ? `<p class="text-pandata-gray-dark text-sm mt-1">"${member.message}"</p>` : ''}
                                 ${!member.message && allFiles.length > 0 ? '<p class="text-pandata-gray text-sm italic mt-1">Files uploaded</p>' : ''}
                             </div>
+                            <label class="flex items-center gap-1.5 cursor-pointer shrink-0" title="Mark as added to Miro">
+                                <input type="checkbox" ${member.miroAdded ? 'checked' : ''}
+                                    onchange="toggleMiroAdded('${member.submissionId}', this)"
+                                    class="w-4 h-4 accent-[#FFD02F] cursor-pointer">
+                                <span class="text-xs text-pandata-gray font-mono">Miro</span>
+                            </label>
                         </div>
                         ${allFiles.length > 0 ? `
                             <div class="mt-3 flex flex-wrap gap-2">
-                                ${allFiles.map(file => 
-                                    file.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) 
+                                ${allFiles.map(file =>
+                                    file.url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                                         ? `<a href="${file.url}" target="_blank" class="relative group">
                                             <img src="${file.url}" class="w-16 h-16 object-cover rounded shadow-sm hover:opacity-80 transition-opacity">
                                             ${file.type === 'note' ? '<span class="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-[10px] text-center rounded-b">Note</span>' : ''}
@@ -391,6 +397,31 @@
                 }).join('');
             }
 
+        }
+
+        async function toggleMiroAdded(submissionId, checkbox) {
+            try {
+                const response = await fetch(`/api/admin/${accessCode}/submissions/${submissionId}/miro-added`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ miroAdded: checkbox.checked })
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    checkbox.checked = !checkbox.checked; // revert
+                    showNotification('Failed to update Miro status', 'error');
+                } else {
+                    // Update border color of parent card
+                    const card = checkbox.closest('[class*="border-l-4"]');
+                    if (card) {
+                        card.classList.toggle('border-[#FFD02F]', checkbox.checked);
+                        card.classList.toggle('border-pandata-red', !checkbox.checked);
+                    }
+                }
+            } catch (e) {
+                checkbox.checked = !checkbox.checked;
+                showNotification('Error: ' + e.message, 'error');
+            }
         }
 
         function showNotification(message, type = 'success') {

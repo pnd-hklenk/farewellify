@@ -11,6 +11,7 @@ import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
+from urllib.parse import quote
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, session, send_file
 from flask_cors import CORS
 from supabase import create_client, Client
@@ -271,9 +272,9 @@ def send_invitations(event_id):
     
     for member in members.data:
         # Create personalized link for this team member
-        personal_link = f"{submit_url}?email={member['email']}"
+        personal_link = f"{submit_url}?email={quote(member['email'])}"
         member_first_name = member['name'].split()[0]
-        
+
         subject = f"Farewell Card for {honoree_first_name} 🎉"
         html_content = f"""
         <html>
@@ -354,7 +355,7 @@ def send_reminders(event_id):
     formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
     
     for member in pending_members:
-        personal_link = f"{submit_url}?email={member['email']}"
+        personal_link = f"{submit_url}?email={quote(member['email'])}"
         member_first_name = member['name'].split()[0]
         
         subject = f"Reminder: Farewell Card for {honoree_first_name} ⏰"
@@ -656,7 +657,9 @@ def get_admin_data(access_code):
             'submittedAt': submission['submitted_at'] if submission else None,
             'message': submission['message'] if submission else None,
             'fileUrl': submission['file_url'] if submission else None,
-            'photoUrls': photo_urls
+            'photoUrls': photo_urls,
+            'submissionId': submission['id'] if submission else None,
+            'miroAdded': submission.get('miro_added', False) if submission else False,
         })
     
     # Calculate detailed stats
@@ -684,6 +687,23 @@ def get_admin_data(access_code):
             'notInvited': not_invited_count
         }
     })
+
+
+@app.route('/api/admin/<access_code>/submissions/<submission_id>/miro-added', methods=['PATCH'])
+def toggle_miro_added(access_code, submission_id):
+    """Toggle the miro_added flag on a submission"""
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+
+    event = supabase.table('farewell_events').select('id').eq('access_code', access_code).limit(1).execute()
+    if not event.data:
+        return jsonify({'error': 'Event not found'}), 404
+
+    data = request.get_json()
+    miro_added = data.get('miroAdded', False)
+
+    supabase.table('submissions').update({'miro_added': miro_added}).eq('id', submission_id).execute()
+    return jsonify({'success': True, 'miroAdded': miro_added})
 
 
 @app.route('/api/admin/<access_code>/add-member', methods=['POST'])
