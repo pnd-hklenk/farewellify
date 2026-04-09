@@ -372,12 +372,13 @@
                                 ${member.message ? `<p class="text-pandata-gray-dark text-sm mt-1">"${member.message}"</p>` : ''}
                                 ${!member.message && allFiles.length > 0 ? '<p class="text-pandata-gray text-sm italic mt-1">Files uploaded</p>' : ''}
                             </div>
+                            ${member.submissionId ? `
                             <label class="flex items-center gap-1.5 cursor-pointer shrink-0" title="Mark as added to Miro">
                                 <input type="checkbox" ${member.miroAdded ? 'checked' : ''}
                                     onchange="toggleMiroAdded('${member.submissionId}', this)"
                                     class="w-4 h-4 accent-[#FFD02F] cursor-pointer">
                                 <span class="text-xs text-pandata-gray font-mono">Miro</span>
-                            </label>
+                            </label>` : ''}
                         </div>
                         ${allFiles.length > 0 ? `
                             <div class="mt-3 flex flex-wrap gap-2">
@@ -448,7 +449,8 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification(`Sent ${result.sentCount} invitation(s)!`);
+                    const skipped = result.skippedInactive ? ` (${result.skippedInactive} inactive skipped)` : '';
+                    showNotification(`Sent ${result.sentCount} invitation(s)!${skipped}`);
                 } else {
                     showNotification(result.error || 'Error sending invitations', 'error');
                 }

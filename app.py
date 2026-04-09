@@ -10,7 +10,7 @@ import json
 import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, session, send_file
 from flask_cors import CORS
@@ -268,7 +268,7 @@ def send_invitations(event_id):
 
     # Skip members who are inactive (have already left the company)
     inactive = supabase.table('employees').select('email').eq('is_active', False).execute()
-    inactive_emails = {e['email'] for e in inactive.data}
+    inactive_emails = {e['email'].lower() for e in inactive.data}
 
     sent_count = 0
     honoree_first_name = event_data['honoree_name'].split()[0]
@@ -279,7 +279,7 @@ def send_invitations(event_id):
     formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
 
     for member in members.data:
-        if member['email'] in inactive_emails:
+        if member['email'].lower() in inactive_emails:
             continue
         # Create personalized link for this team member
         personal_link = f"{submit_url}?email={quote(member['email'])}"
@@ -324,12 +324,14 @@ def send_invitations(event_id):
         if send_email(member['email'], subject, html_content):
             sent_count += 1
             # Update invited_at timestamp
-            supabase.table('team_members').update({'invited_at': datetime.utcnow().isoformat()}).eq('id', member['id']).execute()
+            supabase.table('team_members').update({'invited_at': datetime.now(timezone.utc).isoformat()}).eq('id', member['id']).execute()
     
+    skipped = sum(1 for m in members.data if m['email'].lower() in inactive_emails)
     return jsonify({
         'success': True,
         'sentCount': sent_count,
-        'totalMembers': len(members.data)
+        'totalMembers': len(members.data),
+        'skippedInactive': skipped,
     })
 
 
@@ -358,8 +360,8 @@ def send_reminders(event_id):
 
     # Skip members who are inactive (have already left the company)
     inactive = supabase.table('employees').select('email').eq('is_active', False).execute()
-    inactive_emails = {e['email'] for e in inactive.data}
-    pending_members = [m for m in pending_members if m['email'] not in inactive_emails]
+    inactive_emails = {e['email'].lower() for e in inactive.data}
+    pending_members = [m for m in pending_members if m['email'].lower() not in inactive_emails]
 
     sent_count = 0
     honoree_first_name = event_data['honoree_name'].split()[0]
@@ -411,7 +413,7 @@ def send_reminders(event_id):
         if send_email(member['email'], subject, html_content):
             sent_count += 1
             # Update reminder_sent_at timestamp
-            supabase.table('team_members').update({'reminder_sent_at': datetime.utcnow().isoformat()}).eq('id', member['id']).execute()
+            supabase.table('team_members').update({'reminder_sent_at': datetime.now(timezone.utc).isoformat()}).eq('id', member['id']).execute()
     
     return jsonify({
         'success': True,
@@ -714,10 +716,15 @@ def toggle_miro_added(access_code, submission_id):
     if not event.data:
         return jsonify({'error': 'Event not found'}), 404
 
-    data = request.get_json()
+    event_id = event.data[0]['id']
+    data = request.get_json() or {}
     miro_added = data.get('miroAdded', False)
 
-    supabase.table('submissions').update({'miro_added': miro_added}).eq('id', submission_id).execute()
+    # Scope the update to this event to prevent cross-event tampering
+    result = supabase.table('submissions').update({'miro_added': miro_added}).eq('id', submission_id).eq('event_id', event_id).execute()
+    if not result.data:
+        return jsonify({'error': 'Submission not found'}), 404
+
     return jsonify({'success': True, 'miroAdded': miro_added})
 
 
@@ -744,7 +751,7 @@ def add_team_member(access_code):
         return jsonify({'error': 'Email is required'}), 400
     
     # Check if this email is the honoree
-    if email == event_data['honoree_email'].lower():
+    if event_data.get('honoree_email') and email == event_data['honoree_email'].lower():
         return jsonify({'error': 'Cannot add the honoree as a team member'}), 400
     
     # Check if member already exists
@@ -768,26 +775,51 @@ def add_team_member(access_code):
     # Send invitation if requested
     if send_invite:
         try:
-            submit_url = f"{request.host_url}submit/{event_id}?email={email}"
+            personal_link = f"{request.host_url.rstrip('/')}/submit/{event_id}?email={quote(email)}"
             honoree_first_name = event_data['honoree_name'].split()[0]
-            deadline = event_data['deadline']
-            formatted_deadline = datetime.fromisoformat(deadline.replace('Z', '+00:00')).strftime('%A, %d/%m')
-            organizer_first_name = event_data['organizer_name'].split()[0]
-            
+            deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
+            weekdays_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
+            member_first_name = member_name.split()[0]
+
             subject = f"Farewell Card for {honoree_first_name} 🎉"
-            body = f"""Hi {member_name.split()[0]},
+            html_content = f"""
+        <html>
+        <body style="font-family: 'Open Sans', Arial, sans-serif; margin: 0; padding: 20px; background-color: #eeeeee;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td align="center">
+                        <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: white; border-radius: 8px; border-top: 4px solid #fa4f4f;">
+                            <tr>
+                                <td align="left" style="padding: 30px;">
+                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">Farewell Card for {honoree_first_name}</h2>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">It is <strong>{honoree_first_name}'s</strong> last day on <strong>{formatted_deadline}</strong>, and so we would like you to contribute to their farewell card.</p>
+                                    <p style="color: #434343; margin: 0 0 25px 0;">Please upload or draft your message via our new farewell app:</p>
+                                    <table cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                            <td align="left" style="padding: 10px 0 25px 0;">
+                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Add Your Message</a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;">
+                                    <p style="color: #999999; font-size: 12px; margin: 0;">
+                                        This is your personalized link – no login required!<br>
+                                        Organized by {event_data['organizer_name'].split()[0]}
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
 
-It is {honoree_first_name}'s last day on {formatted_deadline}, and so we would like you to contribute to their farewell card.
-
-Please upload or draft your message via our new farewell app:
-{submit_url}
-
-This is your personalized link – no login required!
-
-Organized by {organizer_first_name}"""
-            
-            if send_email(email, subject, body):
-                supabase.table('team_members').update({'invited_at': datetime.utcnow().isoformat()}).eq('id', member_id).execute()
+            if send_email(email, subject, html_content):
+                supabase.table('team_members').update({'invited_at': datetime.now(timezone.utc).isoformat()}).eq('id', member_id).execute()
                 invite_sent = True
         except Exception as e:
             app.logger.error(f'Error sending invitation: {str(e)}')
