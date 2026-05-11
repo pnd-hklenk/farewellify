@@ -1,5 +1,19 @@
 # Architecture
 
+## Event Types
+
+The same data model powers two event types: **farewells** (someone is leaving) and **5-year anniversaries** (someone is celebrating 5 years). The mode is stored on each event row in `farewell_events.event_type` and drives:
+
+- Email subjects + bodies (invitation, reminder, manual add)
+- Submit page (heading, greeting, step labels, placeholder)
+- Admin dashboard (header label, document title)
+- Miro collage board name + title text
+- ZIP download filename + summary heading
+- Google Drive folder naming (`5Y` prefix on anniversaries)
+- **Honoree auto-deactivation** (only farewell honorees are marked `is_active=false`)
+
+All user-facing copy lives in the `MODE_COPY` dict (backend) and mirror `MODE_UI` / `LABELS` JS objects in the templates. See `.claude/rules/knowledge-event-types.md` for the full map.
+
 ## System Overview
 
 ```

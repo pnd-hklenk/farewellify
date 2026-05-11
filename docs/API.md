@@ -14,6 +14,7 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
+  "eventType": "farewell",
   "honoreeName": "Julian Arnold",
   "honoreeEmail": "julian.arnold@pandata.de",
   "organizerName": "Hannah Klenk",
@@ -26,6 +27,9 @@ Content-Type: application/json
   ]
 }
 ```
+
+**Fields:**
+- `eventType` *(optional, default `"farewell"`)* — one of `"farewell"` or `"anniversary"`. Any other value is coerced to `"farewell"`. Drives all user-facing copy (emails, Miro title, ZIP, admin & submit UI) and gates the honoree auto-deactivation (only farewells deactivate the honoree).
 
 **Response:**
 ```json
@@ -44,6 +48,8 @@ Content-Type: application/json
 
 **Notes:**
 - The honoree is automatically excluded from team members
+- For `eventType: "farewell"`, the honoree's `employees.is_active` is set to `false` (they're leaving). Anniversary events do **not** deactivate the honoree.
+- `GET /api/events/{event_id}` returns `event_type` (snake_case, raw); `GET /api/admin/{code}` returns `eventType` (camelCase, normalised).
 
 ---
 

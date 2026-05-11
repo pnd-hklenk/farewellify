@@ -14,20 +14,21 @@ Credentials are in `.env` - see `.env.example` for the template.
 
 ### farewell_events
 
-Main table storing each farewell card event.
+Main table storing each event (farewell card or 5-year anniversary book).
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | uuid (PK) | Auto-generated unique ID |
-| `honoree_name` | text | Name of person leaving |
-| `honoree_email` | text | Email (used for exclusion) |
+| `honoree_name` | text | Name of the person being honoured |
+| `honoree_email` | text | Email (used for exclusion from invites) |
 | `organizer_name` | text | Who's organizing |
 | `organizer_email` | text | Organizer's email |
-| `deadline` | timestamp | Submission deadline |
-| `message` | text | Message template for invitations |
+| `deadline` | timestamp | Last day (farewell) or anniversary date |
+| `message` | text | Internal message template (not sent verbatim) |
 | `access_code` | text | Unique code for admin URL |
 | `google_drive_folder_url` | text | Link to Google Drive folder (optional) |
 | `miro_board_url` | text | Link to Miro collage board (optional) |
+| `event_type` | text NOT NULL DEFAULT `'farewell'` | One of `'farewell'` or `'anniversary'`. `CHECK` constraint enforces values. Drives all user-facing copy + the honoree-deactivation rule. |
 | `created_at` | timestamp | Auto-set on creation |
 
 **Access Code**: Generated automatically by Supabase trigger. Used in admin URL:
@@ -74,7 +75,7 @@ Master list of all Pandata employees.
 | `is_active` | boolean | Whether to show in selection |
 | `created_at` | timestamp | Auto-set on creation |
 
-**Note**: `is_active = false` for employees on leave (e.g., maternity).
+**Note**: `is_active = false` for employees on leave (e.g., maternity), and is auto-set to `false` when a **farewell** event is created for that employee. Anniversary events do **not** deactivate the honoree.
 
 ## Entity Relationship Diagram
 

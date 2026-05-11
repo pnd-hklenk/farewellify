@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farewellify - Pandata</title>
+    <title>Pandata Cards & Books</title>
     <link rel="icon" type="image/png" href="/assets/farewellify-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -42,16 +42,42 @@
             <div class="mb-6">
                 <img src="/assets/farewellify-logo.png" alt="Farewellify" class="h-32 mx-auto">
             </div>
-            <p class="text-pandata-gray-dark font-mono text-sm uppercase tracking-wider">Pandata Farewell Cards</p>
+            <p id="tagline" class="text-pandata-gray-dark font-mono text-sm uppercase tracking-wider">Pandata Farewell Cards</p>
         </div>
 
         <div class="bg-white rounded-lg shadow-lg p-8 border-t-4 border-pandata-red">
             <form id="createEventForm" class="space-y-6">
+                <!-- Event type toggle -->
+                <div class="border-b border-pandata-gray-light pb-6">
+                    <h2 class="text-lg font-semibold text-pandata-charcoal mb-4">
+                        <i class="fas fa-stamp text-pandata-red mr-2"></i>
+                        What kind of event?
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="flex items-start gap-3 p-4 border-2 border-pandata-red bg-pandata-coral/10 rounded-lg cursor-pointer" id="modeFarewellLabel">
+                            <input type="radio" name="eventType" value="farewell" checked
+                                   class="mt-1 w-4 h-4 text-pandata-red focus:ring-pandata-red">
+                            <div>
+                                <p class="font-semibold text-pandata-charcoal">Farewell card</p>
+                                <p class="text-xs text-pandata-gray-dark">Someone is leaving Pandata</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-pandata-coral" id="modeAnniversaryLabel">
+                            <input type="radio" name="eventType" value="anniversary"
+                                   class="mt-1 w-4 h-4 text-pandata-red focus:ring-pandata-red">
+                            <div>
+                                <p class="font-semibold text-pandata-charcoal">5-year anniversary book</p>
+                                <p class="text-xs text-pandata-gray-dark">Celebrate 5 years at Pandata</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Honoree Section -->
                 <div class="border-b border-pandata-gray-light pb-6">
                     <h2 class="text-lg font-semibold text-pandata-charcoal mb-4">
                         <i class="fas fa-user-tie text-pandata-red mr-2"></i>
-                        Who is leaving?
+                        <span id="honoreeQuestion">Who is leaving?</span>
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -141,7 +167,7 @@
                     <button type="submit"
                             class="w-full py-3 px-6 bg-pandata-red text-white font-semibold rounded-lg hover:bg-pandata-red-dark transition-all shadow-lg">
                         <i class="fas fa-paper-plane mr-2"></i>
-                        Create Farewell Event
+                        <span id="submitBtnText">Create Farewell Event</span>
                     </button>
                 </div>
             </form>
@@ -154,7 +180,7 @@
                     <i class="fas fa-check text-3xl text-pandata-red"></i>
                 </div>
                 <h2 class="text-2xl font-semibold text-pandata-charcoal mb-2">Event Created!</h2>
-                <p class="text-pandata-gray-dark mb-6">Your farewell event has been set up successfully.</p>
+                <p id="successDescription" class="text-pandata-gray-dark mb-6">Your farewell event has been set up successfully.</p>
                 <div class="space-y-3">
                     <div class="p-3 bg-pandata-gray-light rounded-lg text-left">
                         <p class="text-sm text-pandata-gray font-mono uppercase text-xs">Admin Dashboard:</p>
@@ -175,6 +201,55 @@
     <script>
         let employees = [];
         let createdAdminUrl = '';
+
+        // Per-mode UI copy for the create form
+        const MODE_UI = {
+            farewell: {
+                tagline: 'Pandata Farewell Cards',
+                honoreeQuestion: 'Who is leaving?',
+                submitBtn: 'Create Farewell Event',
+                successDescription: 'Your farewell event has been set up successfully.',
+                messageTemplate: name => `We're collecting messages for ${name || '[Name]'}'s farewell card! Please share a few words and any photos you have. You can upload handwritten notes or type a message.`,
+            },
+            anniversary: {
+                tagline: 'Pandata 5-Year Anniversary Books',
+                honoreeQuestion: 'Who is celebrating 5 years?',
+                submitBtn: 'Create Anniversary Event',
+                successDescription: 'Your anniversary event has been set up successfully.',
+                messageTemplate: name => `We're collecting memories for ${name || '[Name]'}'s 5-year anniversary book! Please share a favourite memory and any photos you have. You can upload handwritten notes or type a message.`,
+            },
+        };
+
+        function getCurrentMode() {
+            const checked = document.querySelector('[name="eventType"]:checked');
+            return (checked && checked.value === 'anniversary') ? 'anniversary' : 'farewell';
+        }
+
+        function applyModeUI() {
+            const mode = getCurrentMode();
+            const ui = MODE_UI[mode];
+            document.getElementById('tagline').textContent = ui.tagline;
+            document.getElementById('honoreeQuestion').textContent = ui.honoreeQuestion;
+            document.getElementById('submitBtnText').textContent = ui.submitBtn;
+            document.getElementById('successDescription').textContent = ui.successDescription;
+
+            // Visually highlight the selected radio card
+            document.getElementById('modeFarewellLabel').className =
+                (mode === 'farewell')
+                    ? 'flex items-start gap-3 p-4 border-2 border-pandata-red bg-pandata-coral/10 rounded-lg cursor-pointer'
+                    : 'flex items-start gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-pandata-coral';
+            document.getElementById('modeAnniversaryLabel').className =
+                (mode === 'anniversary')
+                    ? 'flex items-start gap-3 p-4 border-2 border-pandata-red bg-pandata-coral/10 rounded-lg cursor-pointer'
+                    : 'flex items-start gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-pandata-coral';
+
+            // Refresh the auto-template (only if user hasn't edited it)
+            updateDefaultMessage(document.querySelector('[name="honoreeName"]').value);
+        }
+
+        document.querySelectorAll('[name="eventType"]').forEach(radio => {
+            radio.addEventListener('change', applyModeUI);
+        });
 
         // Load employees from database (excluding honoree only - organizer can participate!)
         async function loadEmployees() {
@@ -246,7 +321,7 @@
             const messageField = document.querySelector('[name="message"]');
             if (!messageField.dataset.userEdited) {
                 // This message is only used internally - the actual email will use the personalized template
-                messageField.value = `We're collecting messages for ${name || '[Name]'}'s farewell card! Please share a few words and any photos you have. You can upload handwritten notes or type a message.`;
+                messageField.value = MODE_UI[getCurrentMode()].messageTemplate(name);
             }
         }
 
@@ -271,6 +346,7 @@
                 }));
 
             const data = {
+                eventType: getCurrentMode(),
                 honoreeName: formData.get('honoreeName'),
                 honoreeEmail: formData.get('honoreeEmail'),
                 organizerName: formData.get('organizerName'),
@@ -309,6 +385,7 @@
         }
 
         // Initialize
+        applyModeUI();
         loadEmployees();
         updateDefaultMessage('');
     </script>

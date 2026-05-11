@@ -78,6 +78,54 @@ def handle_exception(e):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+# ============================================
+# EVENT TYPE COPY (farewell vs. 5-year anniversary)
+# ============================================
+MODE_COPY = {
+    'farewell': {
+        'invite_subject': "Farewell Card for {name} 🎉",
+        'reminder_subject': "Reminder: Farewell Card for {name} ⏰",
+        'invite_heading': "Farewell Card for {name}",
+        'invite_intro': "It is <strong>{name}'s</strong> last day on <strong>{deadline}</strong>, and so we would like you to contribute to their farewell card.",
+        'invite_cta_text': "Please upload or draft your message via our new farewell app:",
+        'invite_button': "Add Your Message",
+        'reminder_intro': "Just a friendly reminder: <strong>{name}'s</strong> last day is on <strong>{deadline}</strong>, and we haven't received your contribution to their farewell card yet.",
+        'reminder_cta_text': "Please upload or draft your message via our farewell app:",
+        'reminder_button': "Add Your Message Now",
+        'miro_board_name': "Farewell {name}",
+        'miro_title': "FAREWELL {name_upper}!",
+        'zip_summary_heading': "Farewell Card for {name}",
+        'zip_filename_prefix': "farewell",
+    },
+    'anniversary': {
+        'invite_subject': "5-Year Anniversary Book for {name} 🎉",
+        'reminder_subject': "Reminder: 5-Year Anniversary Book for {name} ⏰",
+        'invite_heading': "5-Year Anniversary Book for {name}",
+        'invite_intro': "<strong>{name}</strong> celebrates 5 years at Pandata on <strong>{deadline}</strong>, and we would like you to contribute to their anniversary book.",
+        'invite_cta_text': "Please upload or draft your memory via our anniversary app:",
+        'invite_button': "Add Your Memory",
+        'reminder_intro': "Just a friendly reminder: <strong>{name}'s</strong> 5-year anniversary is on <strong>{deadline}</strong>, and we haven't received your contribution to their anniversary book yet.",
+        'reminder_cta_text': "Please upload or draft your memory via our anniversary app:",
+        'reminder_button': "Add Your Memory Now",
+        'miro_board_name': "5 Years of {name}",
+        'miro_title': "5 YEARS OF {name_upper}!",
+        'zip_summary_heading': "5-Year Anniversary Book for {name}",
+        'zip_filename_prefix': "anniversary",
+    },
+}
+
+
+def get_event_mode(event_data: dict) -> str:
+    """Return the event_type for an event row, defaulting to 'farewell'."""
+    mode = (event_data or {}).get('event_type') or 'farewell'
+    return mode if mode in MODE_COPY else 'farewell'
+
+
+def get_copy(mode: str) -> dict:
+    """Get the copy dict for a given mode."""
+    return MODE_COPY.get(mode, MODE_COPY['farewell'])
+
 # Supabase configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://datpxrveaizpigltowju.supabase.co')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
@@ -193,17 +241,20 @@ def create_event():
     
     data = request.json
     honoree_name = data['honoreeName']
-    
-    # Auto-create Google Drive folder (YYMM Vorname format)
+    event_type = data.get('eventType', 'farewell')
+    if event_type not in MODE_COPY:
+        event_type = 'farewell'
+
+    # Auto-create Google Drive folder (YYMM [5Y ]Vorname format)
     drive_folder_url = None
     if DRIVE_AVAILABLE and is_drive_connected():
         # Extract first name for folder naming
         first_name = honoree_name.split()[0] if ' ' in honoree_name else honoree_name
-        folder_result = create_farewell_folder(first_name, data.get('deadline'))
+        folder_result = create_farewell_folder(first_name, data.get('deadline'), event_type=event_type)
         if folder_result:
             drive_folder_url = folder_result['folder_url']
             print(f"Created Drive folder: {drive_folder_url}")
-    
+
     # Create the event
     event_data = {
         'honoree_name': honoree_name,
@@ -212,15 +263,17 @@ def create_event():
         'organizer_email': data['organizerEmail'],
         'deadline': data['deadline'],
         'message': data.get('message', ''),
-        'google_drive_folder_url': drive_folder_url
+        'google_drive_folder_url': drive_folder_url,
+        'event_type': event_type,
     }
-    
+
     result = supabase.table('farewell_events').insert(event_data).execute()
     event = result.data[0]
 
-    # Mark honoree as inactive — they're leaving, remove from future events & notifications
+    # Mark honoree as inactive ONLY on farewells — they're leaving the company.
+    # Anniversary honorees are staying, so do NOT deactivate them.
     honoree_email = data.get('honoreeEmail', '').lower()
-    if honoree_email:
+    if honoree_email and event_type == 'farewell':
         supabase.table('employees').update({'is_active': False}).eq('email', honoree_email).execute()
 
     # Add team members (NEVER include the honoree!)
@@ -272,6 +325,8 @@ def send_invitations(event_id):
 
     sent_count = 0
     honoree_first_name = event_data['honoree_name'].split()[0]
+    mode = get_event_mode(event_data)
+    copy = get_copy(mode)
 
     # Format deadline as "Thursday, 29.01."
     deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
@@ -285,7 +340,11 @@ def send_invitations(event_id):
         personal_link = f"{submit_url}?email={quote(member['email'])}"
         member_first_name = member['name'].split()[0]
 
-        subject = f"Farewell Card for {honoree_first_name} 🎉"
+        subject = copy['invite_subject'].format(name=honoree_first_name)
+        heading = copy['invite_heading'].format(name=honoree_first_name)
+        intro = copy['invite_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
+        cta_text = copy['invite_cta_text']
+        button_label = copy['invite_button']
         html_content = f"""
         <html>
         <body style="font-family: 'Open Sans', Arial, sans-serif; margin: 0; padding: 20px; background-color: #eeeeee;">
@@ -295,14 +354,14 @@ def send_invitations(event_id):
                         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: white; border-radius: 8px; border-top: 4px solid #fa4f4f;">
                             <tr>
                                 <td align="left" style="padding: 30px;">
-                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">Farewell Card for {honoree_first_name}</h2>
+                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">{heading}</h2>
                                     <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
-                                    <p style="color: #434343; margin: 0 0 15px 0;">It is <strong>{honoree_first_name}'s</strong> last day on <strong>{formatted_deadline}</strong>, and so we would like you to contribute to their farewell card.</p>
-                                    <p style="color: #434343; margin: 0 0 25px 0;">Please upload or draft your message via our new farewell app:</p>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">{intro}</p>
+                                    <p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td align="left" style="padding: 10px 0 25px 0;">
-                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Add Your Message</a>
+                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">{button_label}</a>
                                             </td>
                                         </tr>
                                     </table>
@@ -320,7 +379,7 @@ def send_invitations(event_id):
         </body>
         </html>
         """
-        
+
         if send_email(member['email'], subject, html_content):
             sent_count += 1
             # Update invited_at timestamp
@@ -365,6 +424,8 @@ def send_reminders(event_id):
 
     sent_count = 0
     honoree_first_name = event_data['honoree_name'].split()[0]
+    mode = get_event_mode(event_data)
+    copy = get_copy(mode)
 
     # Format deadline as "Thursday, 29.01."
     deadline_date = datetime.fromisoformat(event_data['deadline'].replace('Z', '+00:00'))
@@ -374,8 +435,11 @@ def send_reminders(event_id):
     for member in pending_members:
         personal_link = f"{submit_url}?email={quote(member['email'])}"
         member_first_name = member['name'].split()[0]
-        
-        subject = f"Reminder: Farewell Card for {honoree_first_name} ⏰"
+
+        subject = copy['reminder_subject'].format(name=honoree_first_name)
+        intro = copy['reminder_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
+        cta_text = copy['reminder_cta_text']
+        button_label = copy['reminder_button']
         html_content = f"""
         <html>
         <body style="font-family: 'Open Sans', Arial, sans-serif; margin: 0; padding: 20px; background-color: #eeeeee;">
@@ -387,12 +451,12 @@ def send_reminders(event_id):
                                 <td align="left" style="padding: 30px;">
                                     <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">⏰ Friendly Reminder!</h2>
                                     <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
-                                    <p style="color: #434343; margin: 0 0 15px 0;">Just a friendly reminder: <strong>{honoree_first_name}'s</strong> last day is on <strong>{formatted_deadline}</strong>, and we haven't received your contribution to their farewell card yet.</p>
-                                    <p style="color: #434343; margin: 0 0 25px 0;">Please upload or draft your message via our farewell app:</p>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">{intro}</p>
+                                    <p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td align="left" style="padding: 10px 0 25px 0;">
-                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Add Your Message Now</a>
+                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">{button_label}</a>
                                             </td>
                                         </tr>
                                     </table>
@@ -434,7 +498,7 @@ def get_event(event_id):
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 500
     
-    event = supabase.table('farewell_events').select('id, honoree_name, deadline, message, google_drive_folder_url').eq('id', event_id).limit(1).execute()
+    event = supabase.table('farewell_events').select('id, honoree_name, deadline, message, google_drive_folder_url, event_type').eq('id', event_id).limit(1).execute()
     if not event.data or len(event.data) == 0:
         return jsonify({'error': 'Event not found'}), 404
     
@@ -694,7 +758,8 @@ def get_admin_data(access_code):
             'deadline': event_data['deadline'],
             'message': event_data['message'],
             'googleDriveFolderUrl': event_data['google_drive_folder_url'],
-            'createdAt': event_data['created_at']
+            'createdAt': event_data['created_at'],
+            'eventType': get_event_mode(event_data),
         },
         'members': member_list,
         'stats': {
@@ -782,7 +847,13 @@ def add_team_member(access_code):
             formatted_deadline = f"{weekdays_en[deadline_date.weekday()]}, {deadline_date.strftime('%d.%m.')}"
             member_first_name = member_name.split()[0]
 
-            subject = f"Farewell Card for {honoree_first_name} 🎉"
+            mode = get_event_mode(event_data)
+            copy = get_copy(mode)
+            subject = copy['invite_subject'].format(name=honoree_first_name)
+            heading = copy['invite_heading'].format(name=honoree_first_name)
+            intro = copy['invite_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
+            cta_text = copy['invite_cta_text']
+            button_label = copy['invite_button']
             html_content = f"""
         <html>
         <body style="font-family: 'Open Sans', Arial, sans-serif; margin: 0; padding: 20px; background-color: #eeeeee;">
@@ -792,14 +863,14 @@ def add_team_member(access_code):
                         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: white; border-radius: 8px; border-top: 4px solid #fa4f4f;">
                             <tr>
                                 <td align="left" style="padding: 30px;">
-                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">Farewell Card for {honoree_first_name}</h2>
+                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">{heading}</h2>
                                     <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
-                                    <p style="color: #434343; margin: 0 0 15px 0;">It is <strong>{honoree_first_name}'s</strong> last day on <strong>{formatted_deadline}</strong>, and so we would like you to contribute to their farewell card.</p>
-                                    <p style="color: #434343; margin: 0 0 25px 0;">Please upload or draft your message via our new farewell app:</p>
+                                    <p style="color: #434343; margin: 0 0 15px 0;">{intro}</p>
+                                    <p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td align="left" style="padding: 10px 0 25px 0;">
-                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Add Your Message</a>
+                                                <a href="{personal_link}" style="background-color: #fa4f4f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">{button_label}</a>
                                             </td>
                                         </tr>
                                     </table>
@@ -846,19 +917,21 @@ def download_all_submissions(access_code):
     event_data = event.data[0]
     event_id = event_data['id']
     honoree_name = event_data['honoree_name']
-    
+    mode = get_event_mode(event_data)
+    copy = get_copy(mode)
+
     # Get all submissions with team member info
     submissions = supabase.table('submissions').select('*, team_members(name, email)').eq('event_id', event_id).execute()
-    
+
     if not submissions.data:
         return jsonify({'error': 'No submissions yet'}), 404
-    
+
     # Create ZIP file in memory
     zip_buffer = io.BytesIO()
-    
+
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         # Add a summary text file
-        summary_lines = [f"Farewell Card for {honoree_name}", "=" * 40, ""]
+        summary_lines = [copy['zip_summary_heading'].format(name=honoree_name), "=" * 40, ""]
         
         for idx, submission in enumerate(submissions.data, 1):
             member_name = submission['team_members']['name'] if submission.get('team_members') else 'Unknown'
@@ -934,7 +1007,7 @@ def download_all_submissions(access_code):
     
     # Create filename
     safe_honoree = honoree_name.replace(' ', '_').replace('/', '-')
-    filename = f"farewell_{safe_honoree}.zip"
+    filename = f"{copy['zip_filename_prefix']}_{safe_honoree}.zip"
     
     return send_file(
         zip_buffer,
@@ -1162,16 +1235,18 @@ def create_miro_collage(access_code):
     event_data = event.data[0]
     event_id = event_data['id']
     honoree_name = event_data['honoree_name']
-    
+    mode = get_event_mode(event_data)
+    copy = get_copy(mode)
+
     # Get all submissions with team member info
     submissions = supabase.table('submissions').select('*, team_members(name, email)').eq('event_id', event_id).execute()
-    
+
     if not submissions.data:
         return jsonify({'error': 'No submissions yet. Add some messages before creating a collage!'}), 400
-    
+
     try:
         # Create Miro board
-        board = create_miro_board(f'Farewell {honoree_name}')
+        board = create_miro_board(copy['miro_board_name'].format(name=honoree_name))
         board_id = board['id']
         board_url = board['viewLink']
         
@@ -1214,7 +1289,7 @@ def create_miro_collage(access_code):
                       BOARD_WIDTH - 200, 140, '#fa4f4f')
         
         # Title text (white on red background)
-        title_text = f'<strong>FAREWELL {honoree_name.upper()}!</strong>'
+        title_text = f"<strong>{copy['miro_title'].format(name_upper=honoree_name.upper(), name=honoree_name)}</strong>"
         add_miro_text(board_id, title_text, BOARD_WIDTH / 2, TITLE_Y, font_size=64, color='#ffffff')
         
         # =====================

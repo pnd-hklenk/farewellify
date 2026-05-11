@@ -179,28 +179,36 @@ def get_drive_service():
     return None
 
 
-def create_farewell_folder(honoree_first_name: str, event_date=None) -> dict:
+def create_farewell_folder(honoree_first_name: str, event_date=None, event_type: str = 'farewell') -> dict:
     """
-    Create a folder for the farewell card in Google Drive.
-    Format: YYMM FirstName (e.g., "2601 Julian" for January 2026, Julian)
-    
+    Create a folder for the event (farewell card or 5-year anniversary book) in Google Drive.
+
+    Folder name format:
+      - farewell:    "YYMM FirstName"     e.g. "2601 Julian"
+      - anniversary: "YYMM 5Y FirstName"  e.g. "2605 5Y Julian"
+
+    Both go into the same parent folder (FAREWELL_CARDS_FOLDER_ID) since there is
+    currently no separate parent configured for anniversaries. The "5Y" marker
+    makes anniversary folders visually distinct.
+
     Returns dict with folder_id and folder_url, or None if failed.
     """
     from datetime import datetime
-    
+
     service = get_drive_service()
     if not service:
         print("Google Drive not connected")
         return None
-    
+
     try:
-        # Generate folder name: YYMM FirstName
+        # Generate folder name: YYMM [5Y ]FirstName
         if event_date:
             date = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
         else:
             date = datetime.now()
-        
-        folder_name = f"{date.strftime('%y%m')} {honoree_first_name}"
+
+        prefix = '5Y ' if event_type == 'anniversary' else ''
+        folder_name = f"{date.strftime('%y%m')} {prefix}{honoree_first_name}"
         
         # Check if folder already exists
         query = f"name='{folder_name}' and '{FAREWELL_CARDS_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"

@@ -4,6 +4,42 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-05-11] - Event Types: Farewell vs. 5-Year Anniversary
+
+### Added
+
+#### Schema
+- **`farewell_events.event_type`** — new `text NOT NULL DEFAULT 'farewell'` column with `CHECK (event_type IN ('farewell','anniversary'))`. Existing rows default to `'farewell'`. Migration: `add_event_type_to_farewell_events`.
+
+#### Backend (`app.py`)
+- **`MODE_COPY` dict** — single source of truth for all per-mode user-facing strings (email subjects, email bodies, Miro title / board name, ZIP filename prefix, ZIP summary heading).
+- **Helpers** `get_event_mode(event_data)` and `get_copy(mode)` — defensive lookup with `'farewell'` fallback.
+- `POST /api/events` accepts an `eventType` field (`farewell` | `anniversary`) and persists it.
+- **Honoree auto-deactivation is now mode-gated** — only farewell honorees are flipped to `is_active=false` (anniversary honorees stay at the company, so we must NOT deactivate them).
+- `GET /api/events/<event_id>` returns `event_type` (snake_case, raw column).
+- `GET /api/admin/<code>` returns `eventType` (camelCase, normalised via `get_event_mode`).
+- All email senders (`send_invitations`, `send_reminders`, `add_team_member` invite) and the Miro board + ZIP download now read copy from `MODE_COPY`.
+
+#### Google Drive (`gmail_auth.py`)
+- `create_farewell_folder` gained an optional `event_type='farewell'` parameter. Anniversary folders are named `YYMM 5Y FirstName` (e.g. `2605 5Y Julian`); farewells keep the existing `YYMM FirstName` format. Both share the same parent folder (`FAREWELL_CARDS_FOLDER_ID`) — there is no separate anniversary parent yet.
+
+#### Templates
+- **`index.html`** — new radio toggle (Farewell card vs. 5-year anniversary book) at the top of the create form. Tagline, "Who is leaving?/Who is celebrating 5 years?" question, submit-button label, success-modal copy, and the auto-generated team message all swap based on the selected mode (`MODE_UI` dict, `applyModeUI()`).
+- **`submit.html`** — page heading, greeting subline, step-1 label, message textarea placeholder, and document title swap based on the event's `event_type` returned from the API (`LABELS` dict).
+- **`admin.html`** — dashboard header label ("Farewell Card for" vs. "5-Year Anniversary Book for") and document title swap based on `event.eventType`.
+
+### Decisions / Caveats
+- **Single Drive parent folder.** Both modes still write into `FAREWELL_CARDS_FOLDER_ID`; only the folder name differs. If we later want a dedicated anniversary parent, add an env var (e.g. `ANNIVERSARY_BOOKS_FOLDER_ID`) and branch in `create_farewell_folder`.
+- **Deadline field is reused.** For farewells it's the last day; for anniversaries it's the anniversary date. The DB column stays `deadline` to avoid a breaking rename.
+- **Honoree exclusion behaviour is unchanged** — the honoree is always excluded from the invite list in both modes, keeping it a surprise.
+- **Inactive employees** are skipped from invites in both modes (correct: ex-employees shouldn't be pinged for anniversaries either).
+- **DB table name `farewell_events`** kept for backwards compatibility — renaming would require touching every query, RLS policy, and migration.
+
+### Full reference
+See `.claude/rules/knowledge-event-types.md` for the implementation map and a "where do I touch X?" index.
+
+---
+
 ## [2026-01-27] - Miro Collage Integration
 
 ### Added

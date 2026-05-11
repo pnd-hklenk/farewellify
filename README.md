@@ -1,6 +1,6 @@
 # Farewellify 🎉
 
-A web app for organizing farewell cards at Pandata. Collect messages from the team, track submissions, and send reminders.
+A web app for organizing **farewell cards** *and* **5-year anniversary books** at Pandata. Pick the event type when you create it; the same flow handles both. Collect messages from the team, track submissions, and send reminders.
 
 ## Quick Links
 
@@ -12,6 +12,7 @@ A web app for organizing farewell cards at Pandata. Collect messages from the te
 
 ## Features
 
+- ✅ **Two event types** - Farewell card *or* 5-year anniversary book; copy auto-adapts everywhere (emails, Miro, ZIP, UI)
 - ✅ **Employee List** - All Pandata employees pre-loaded, auto-excludes honoree
 - ✅ **Personalized Links** - Each team member gets their own link (no login required)
 - ✅ **Email Integration** - Send invitations and reminders directly from the app (via SMTP)
