@@ -292,6 +292,21 @@
                 sendInvBtn.title = '';
             }
 
+            // Disable "Remind All Pending" button if no invites have been sent yet
+            const remindBtn = document.getElementById('sendRemindersBtn');
+            const anyoneInvited = data.stats.invited > 0 || data.stats.submitted > 0;
+            if (!anyoneInvited) {
+                remindBtn.disabled = true;
+                remindBtn.classList.remove('bg-pandata-charcoal', 'hover:bg-black');
+                remindBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+                remindBtn.title = 'Send invitations first before sending reminders';
+            } else {
+                remindBtn.disabled = false;
+                remindBtn.classList.add('bg-pandata-charcoal', 'hover:bg-black');
+                remindBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                remindBtn.title = '';
+            }
+
             // Drive link (deprecated - kept for backwards compatibility)
             // if (data.event.googleDriveFolderUrl) {
             //     const driveLink = document.getElementById('driveLink');

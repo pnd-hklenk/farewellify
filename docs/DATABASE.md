@@ -5,7 +5,7 @@ The app uses **Supabase** (PostgreSQL) for data storage.
 ## Connection
 
 ```
-URL: https://datpxrveaizpigltowju.supabase.co
+URL: https://wjmslehtpfwpyjykfshu.supabase.co
 ```
 
 Credentials are in `.env` - see `.env.example` for the template.
@@ -61,7 +61,9 @@ Messages submitted by team members.
 | `team_member_id` | uuid (FK) | References team_members.id |
 | `message` | text | The farewell message |
 | `file_url` | text | URL to uploaded file (if any) |
-| `created_at` | timestamp | When submitted |
+| `photo_urls` | text | JSON array of photo URLs (up to 15) |
+| `miro_added` | boolean DEFAULT false | Whether this submission has been added to Miro |
+| `submitted_at` | timestamp | When submitted |
 
 ### employees
 
@@ -177,6 +179,17 @@ CREATE POLICY "Allow all" ON farewell_events FOR ALL USING (true);
 CREATE POLICY "Allow all" ON team_members FOR ALL USING (true);
 CREATE POLICY "Allow all" ON submissions FOR ALL USING (true);
 CREATE POLICY "Allow all" ON employees FOR ALL USING (true);
+
+-- Storage: allow public access to the uploads bucket
+CREATE POLICY "Allow public uploads to uploads bucket"
+  ON storage.objects FOR INSERT TO public
+  WITH CHECK (bucket_id = 'uploads');
+CREATE POLICY "Allow public read from uploads bucket"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'uploads');
+CREATE POLICY "Allow public update in uploads bucket"
+  ON storage.objects FOR UPDATE TO public
+  USING (bucket_id = 'uploads');
 ```
 
 ## Current Employee Data
@@ -211,6 +224,21 @@ ALTER TABLE farewell_events ADD COLUMN IF NOT EXISTS google_drive_folder_url TEX
 ### Add photo_urls to submissions (for multiple photos)
 ```sql
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS photo_urls TEXT;
+```
+
+### Add storage RLS policies for the uploads bucket
+Without these policies, file uploads via the anon key fail with a 403
+"new row violates row-level security policy" error.
+```sql
+CREATE POLICY "Allow public uploads to uploads bucket"
+  ON storage.objects FOR INSERT TO public
+  WITH CHECK (bucket_id = 'uploads');
+CREATE POLICY "Allow public read from uploads bucket"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'uploads');
+CREATE POLICY "Allow public update in uploads bucket"
+  ON storage.objects FOR UPDATE TO public
+  USING (bucket_id = 'uploads');
 ```
 
 ## Queries

@@ -85,7 +85,8 @@ def allowed_file(filename):
 MODE_COPY = {
     'farewell': {
         'invite_subject': "Farewell Card for {name} 🎉",
-        'reminder_subject': "Reminder: Farewell Card for {name} ⏰",
+        'reminder_subject': "Reminder: Farewell Card for {name} 🎉",
+        'reminder_heading': "🎉 Friendly Reminder!",
         'invite_heading': "Farewell Card for {name}",
         'invite_intro': "It is <strong>{name}'s</strong> last day on <strong>{deadline}</strong>, and so we would like you to contribute to their farewell card.",
         'invite_cta_text': "Please upload or draft your message via our new farewell app:",
@@ -100,7 +101,8 @@ MODE_COPY = {
     },
     'anniversary': {
         'invite_subject': "5-Year Anniversary Book for {name} 🎉",
-        'reminder_subject': "Reminder: 5-Year Anniversary Book for {name} ⏰",
+        'reminder_subject': "Reminder: 5-Year Anniversary Book for {name} 🎂",
+        'reminder_heading': "🎂 Friendly Reminder!",
         'invite_heading': "5-Year Anniversary Book for {name}",
         'invite_intro': "<strong>{name}</strong> celebrates 5 years at Pandata on <strong>{deadline}</strong>, and we would like you to contribute to their anniversary book.",
         'invite_cta_text': "Please upload or draft your memory via our anniversary app:",
@@ -127,7 +129,7 @@ def get_copy(mode: str) -> dict:
     return MODE_COPY.get(mode, MODE_COPY['farewell'])
 
 # Supabase configuration
-SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://datpxrveaizpigltowju.supabase.co')
+SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://wjmslehtpfwpyjykfshu.supabase.co')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
 SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'uploads')
 
@@ -406,14 +408,25 @@ def send_reminders(event_id):
         return jsonify({'error': 'Event not found'}), 404
     
     event_data = event.data[0]
-    
+
     # Get team members who haven't submitted
     members = supabase.table('team_members').select('*').eq('event_id', event_id).execute()
+
+    # Block reminders if no invites have been sent yet
+    anyone_invited = any(m.get('invited_at') for m in members.data)
+    if not anyone_invited:
+        return jsonify({'error': 'Send invitations first before sending reminders'}), 400
     submissions = supabase.table('submissions').select('team_member_id').eq('event_id', event_id).execute()
     
     submitted_ids = {s['team_member_id'] for s in submissions.data}
-    pending_members = [m for m in members.data if m['id'] not in submitted_ids]
-    
+    # Only remind members who have actually received an invite. Sending a
+    # reminder to someone who never got the original invite is confusing
+    # ("Reminder: …" with no prior context).
+    pending_members = [
+        m for m in members.data
+        if m['id'] not in submitted_ids and m.get('invited_at')
+    ]
+
     base_url = request.host_url.rstrip('/')
     submit_url = f"{base_url}/submit/{event_id}"
 
@@ -449,7 +462,7 @@ def send_reminders(event_id):
                         <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: white; border-radius: 8px; border-top: 4px solid #434343;">
                             <tr>
                                 <td align="left" style="padding: 30px;">
-                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">⏰ Friendly Reminder!</h2>
+                                    <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">{copy['reminder_heading']}</h2>
                                     <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
                                     <p style="color: #434343; margin: 0 0 15px 0;">{intro}</p>
                                     <p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>

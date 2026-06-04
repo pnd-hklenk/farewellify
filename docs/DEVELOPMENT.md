@@ -22,8 +22,8 @@ The `.env` file should contain:
 
 ```bash
 # Supabase (already configured)
-SUPABASE_URL=https://datpxrveaizpigltowju.supabase.co
-SUPABASE_KEY=your-key-here
+SUPABASE_URL=https://wjmslehtpfwpyjykfshu.supabase.co
+SUPABASE_KEY=your-service-role-key-here  # use service_role key (safe — server-side only)
 
 # Flask secret (for OAuth sessions)
 FLASK_SECRET_KEY=any-random-string-here

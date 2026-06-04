@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-06-04] - Fix storage upload RLS error (403)
+
+### Fixed
+
+#### Storage RLS policies (Supabase)
+- **Root cause:** The `storage.objects` table had RLS enabled but **no policies** for the `uploads` bucket. Photo uploads via the Supabase anon key failed with `403 — new row violates row-level security policy`.
+- **Fix:** Added INSERT, SELECT, and UPDATE policies on `storage.objects` scoped to `bucket_id = 'uploads'`. Applied as a Supabase migration (`allow_public_storage_uploads`).
+
+#### Stale Supabase project URL
+- The hardcoded default `SUPABASE_URL` in `app.py` and several docs still referenced the old project (`datpxrveaizpigltowju`). Updated to the current project (`wjmslehtpfwpyjykfshu`).
+
+### Changed
+- **`.env.example`**: Updated `SUPABASE_KEY` placeholder from `your_anon_public_key_here` to `your_service_role_key_here`. The service role key is appropriate for server-side apps (the key is never exposed to browsers) and bypasses RLS entirely, avoiding future policy gaps.
+- **`docs/DATABASE.md`**: Documented storage RLS policies in the SQL setup section and migrations section. Added missing `photo_urls`, `miro_added`, and `submitted_at` columns to the submissions table docs.
+
+### Decisions
+- **Storage RLS policies over disabling RLS**: We added targeted policies rather than disabling RLS on `storage.objects`, preserving defense-in-depth.
+- **Service role key recommended for production**: Since the Flask backend is the only Supabase client and runs server-side, the service role key is safe and avoids RLS friction. The storage policies remain as a fallback if the anon key is ever used.
+
+### Files modified
+- `app.py` — Updated default `SUPABASE_URL`
+- `.env.example` — Updated key placeholder
+- `docs/DATABASE.md` — Storage policies, missing columns
+- `docs/DEVELOPMENT.md` — Updated Supabase URL
+- `docs/CHANGELOG.md` — This entry
+
+---
+
 ## [2026-05-11] - Event Types: Farewell vs. 5-Year Anniversary
 
 ### Added
