@@ -25,7 +25,7 @@ The Flask backend uses `SUPABASE_KEY` from the environment. This should be the *
 | Bucket | `uploads` |
 | Public | Yes |
 | Max file size | 50 MB |
-| Allowed types | JPEG, PNG, GIF, PDF |
+| Allowed types | JPEG, PNG, GIF, PDF, HEIC, WebP |
 
 ### RLS policies on `storage.objects`
 
@@ -51,6 +51,12 @@ All four public tables (`farewell_events`, `team_members`, `submissions`, `emplo
 | 2 | Storage RLS policies scoped to `bucket_id = 'uploads'` | Targeted — only the uploads bucket is exposed, not all of storage. |
 | 3 | No DELETE policy on storage | The app never deletes uploaded files. Add one if that changes. |
 | 4 | Wide-open table RLS | Acceptable because there is no direct client-side Supabase access. All queries go through Flask. |
+
+## Logging
+
+Storage uploads log both success and failure via `app.logger` (in `app.py`) so errors appear in GCP Cloud Run logs. If a storage upload fails, the log includes the filename, file size, content type, and the exception. Submission errors also log `event_id` and `email` for correlation. `gmail_auth.py` uses `logging.getLogger(__name__)`.
+
+Do not reintroduce `print()` for error output — use `app.logger` (in Flask context) or `logging.getLogger(__name__)` (in standalone modules).
 
 ## Things NOT to do
 

@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-06-08] - Add proper logging for storage uploads and submissions
+
+### Changed
+
+#### Logging (`app.py`, `gmail_auth.py`)
+- Replaced all `print()` calls with proper `logging` / `app.logger` calls across both files.
+- Configured gunicorn logger integration for production (GCP Cloud Run) with a safe fallback for local dev and `flask run`.
+- Storage uploads now log on success (filename, size, content type) and on failure — so 403-type errors will appear in GCP Cloud Run logs instead of being silently swallowed.
+- Submission errors now include `event_id` and `email` in the log message for easier correlation.
+- `gmail_auth.py` uses a module-level `logging.getLogger(__name__)` logger.
+
+### Fixed
+- **Logging setup guard**: The original gunicorn logger integration would wipe Flask's default handler if gunicorn wasn't present (e.g. running `flask run` without `--debug`). Now only overrides handlers when gunicorn is actually running.
+
+### Files modified
+- `app.py` — Logging setup, all `print()` → `app.logger`, upload success/failure logging with context
+- `gmail_auth.py` — `import logging`, all `print()` → `logger`
+
+---
+
 ## [2026-06-04] - Fix storage upload RLS error (403)
 
 ### Fixed

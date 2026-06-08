@@ -185,7 +185,7 @@ Files are stored in Supabase Storage for persistence across deployments.
 | Bucket | `uploads` |
 | Public | Yes |
 | Max size | 50MB |
-| Allowed types | JPEG, PNG, GIF, PDF |
+| Allowed types | JPEG, PNG, GIF, PDF, HEIC, WebP |
 
 File naming convention:
 - Photos: `{event_id}_photo_{uuid}.{ext}`

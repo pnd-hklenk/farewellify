@@ -107,7 +107,7 @@
                             Option A: Upload handwritten note ⭐ <span class="text-pandata-red">(preferred!)</span>
                         </p>
                         <div id="messageUploadArea" class="border-2 border-dashed border-pandata-coral/50 rounded-lg p-4 text-center hover:border-pandata-red transition-colors cursor-pointer bg-white">
-                            <input type="file" id="messageFileInput" name="messageFile" accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                            <input type="file" id="messageFileInput" name="messageFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.heic,.webp" class="hidden">
                             <label for="messageFileInput" class="cursor-pointer block">
                                 <div id="messageUploadPlaceholder">
                                     <i class="fas fa-pencil-alt text-2xl text-pandata-coral mb-1"></i>
@@ -179,7 +179,7 @@
                         
                         <!-- Add photos button -->
                         <div id="addPhotosArea" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-pandata-red transition-colors cursor-pointer">
-                            <input type="file" id="photosInput" multiple accept=".jpg,.jpeg,.png" class="hidden">
+                            <input type="file" id="photosInput" multiple accept=".jpg,.jpeg,.png,.gif,.heic,.webp" class="hidden">
                             <label for="photosInput" class="cursor-pointer block">
                                 <i class="fas fa-plus text-2xl text-gray-400 mb-1"></i>
                                 <p class="text-sm text-gray-600">Click to add photos</p>
@@ -237,6 +237,23 @@
         let newPhotoFiles = [];  // New files to upload
         let hasMessageFile = false;
         let existingMessageFileUrl = null;
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+        const ALLOWED_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'heic', 'webp'];
+
+        function getFileExtension(filename) {
+            return filename.split('.').pop().toLowerCase();
+        }
+
+        function validateFile(file) {
+            const ext = getFileExtension(file.name);
+            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+                return `"${file.name}" has an unsupported file type (.${ext}). Allowed: ${ALLOWED_EXTENSIONS.join(', ')}.`;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                return `"${file.name}" is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 50MB.`;
+            }
+            return null;
+        }
 
         // Per-mode copy for the submit page UI
         const LABELS = {
@@ -433,11 +450,25 @@
         document.getElementById('photosInput').addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             const remaining = 15 - existingPhotos.length - newPhotoFiles.length;
-            const toAdd = files.slice(0, remaining);
-            
-            newPhotoFiles = [...newPhotoFiles, ...toAdd];
+            const errors = [];
+            const validFiles = [];
+
+            for (const file of files.slice(0, remaining)) {
+                const error = validateFile(file);
+                if (error) {
+                    errors.push(error);
+                } else {
+                    validFiles.push(file);
+                }
+            }
+
+            if (errors.length > 0) {
+                alert(errors.join('\n'));
+            }
+
+            newPhotoFiles = [...newPhotoFiles, ...validFiles];
             renderPhotoGrid();
-            
+
             // Reset input
             e.target.value = '';
         });
@@ -447,6 +478,12 @@
         messageFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                const error = validateFile(file);
+                if (error) {
+                    alert(error);
+                    e.target.value = '';
+                    return;
+                }
                 hasMessageFile = true;
                 existingMessageFileUrl = null; // New file replaces existing
                 document.getElementById('messageUploadPlaceholder').classList.add('hidden');

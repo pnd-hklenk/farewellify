@@ -39,16 +39,18 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24).hex())
 CORS(app)
 
 # Logging — gunicorn captures root logger; this ensures Flask logs reach it.
-if not app.debug:
-    gunicorn_logger = logging.getLogger('gunicorn.error')
+# Guard: only override handlers when gunicorn is actually present, otherwise
+# Flask's default StreamHandler keeps working (e.g. `flask run` without debug).
+gunicorn_logger = logging.getLogger('gunicorn.error')
+if gunicorn_logger.handlers:
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
 else:
-    logging.basicConfig(level=logging.INFO)
+    app.logger.setLevel(logging.INFO)
 
 # File upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'heic', 'webp'}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -165,7 +167,9 @@ def upload_to_supabase_storage(file_data: bytes, filename: str) -> str:
         'jpeg': 'image/jpeg',
         'png': 'image/png',
         'pdf': 'application/pdf',
-        'gif': 'image/gif'
+        'gif': 'image/gif',
+        'heic': 'image/heic',
+        'webp': 'image/webp'
     }
     content_type = content_types.get(ext, 'application/octet-stream')
     
@@ -179,9 +183,10 @@ def upload_to_supabase_storage(file_data: bytes, filename: str) -> str:
         
         # Get public URL
         public_url = supabase.storage.from_(SUPABASE_STORAGE_BUCKET).get_public_url(filename)
+        app.logger.info(f'Storage upload OK: {filename} ({len(file_data)} bytes, {content_type})')
         return public_url
     except Exception as e:
-        app.logger.error(f'Supabase storage upload error: {str(e)}')
+        app.logger.error(f'Storage upload FAILED: {filename} ({len(file_data)} bytes, {content_type}): {e}')
         raise
 
 # SMTP Email configuration
@@ -577,20 +582,22 @@ def create_submission():
         # Handle handwritten note (messageFile) - this becomes file_url
         if 'messageFile' in request.files:
             msg_file = request.files['messageFile']
-            if msg_file and msg_file.filename and allowed_file(msg_file.filename):
+            if msg_file and msg_file.filename:
+                if not allowed_file(msg_file.filename):
+                    return jsonify({'error': f'File type not allowed for "{msg_file.filename}". Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}'}), 400
                 ext = msg_file.filename.rsplit('.', 1)[1].lower()
                 unique_filename = f"{event_id}_msg_{uuid.uuid4().hex[:8]}.{ext}"
-                # Upload to Supabase Storage
                 file_data = msg_file.read()
                 file_url = upload_to_supabase_storage(file_data, unique_filename)
-        
+
         # Handle multiple photo files (up to 15)
         photo_files = request.files.getlist('photos')
         for photo in photo_files[:15]:  # Limit to 15 photos
-            if photo and photo.filename and allowed_file(photo.filename):
+            if photo and photo.filename:
+                if not allowed_file(photo.filename):
+                    return jsonify({'error': f'File type not allowed for "{photo.filename}". Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}'}), 400
                 ext = photo.filename.rsplit('.', 1)[1].lower()
                 unique_filename = f"{event_id}_photo_{uuid.uuid4().hex[:8]}.{ext}"
-                # Upload to Supabase Storage
                 file_data = photo.read()
                 photo_url = upload_to_supabase_storage(file_data, unique_filename)
                 photo_urls.append(photo_url)
@@ -649,7 +656,7 @@ def create_submission():
             return jsonify({'success': True})
         except Exception as db_error:
             error_msg = str(db_error)
-            app.logger.error(f"Database error (with photo_urls): {error_msg}")
+            app.logger.error(f"Submission DB error [event={event_id}, email={email}] (with photo_urls): {error_msg}")
             
             # If photo_urls column doesn't exist, try without it
             if 'photo_urls' in error_msg or 'column' in error_msg.lower():
@@ -665,13 +672,13 @@ def create_submission():
                         'warning': 'Photos not saved - photo_urls column missing in database'
                     })
                 except Exception as e2:
-                    app.logger.error(f"Database error (without photo_urls): {str(e2)}")
+                    app.logger.error(f"Submission DB error [event={event_id}, email={email}] (without photo_urls): {str(e2)}")
                     return jsonify({'success': False, 'error': f'Database error: {str(e2)}'}), 500
             
             return jsonify({'success': False, 'error': f'Database error: {error_msg}'}), 500
             
     except Exception as e:
-        app.logger.error(f"Submission error: {str(e)}", exc_info=True)
+        app.logger.error(f"Submission error [event={request.form.get('eventId')}, email={request.form.get('email')}]: {e}", exc_info=True)
         return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 

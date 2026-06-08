@@ -5,9 +5,12 @@ No password needed - just authorize with Google!
 import os
 import json
 import base64
+import logging
 from pathlib import Path
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+logger = logging.getLogger(__name__)
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -121,7 +124,7 @@ def send_email_via_gmail(to_email: str, subject: str, html_content: str) -> bool
     """Send an email using Gmail API"""
     service = get_gmail_service()
     if not service:
-        print("Gmail not connected")
+        logger.warning("Gmail not connected")
         return False
     
     try:
@@ -143,7 +146,7 @@ def send_email_via_gmail(to_email: str, subject: str, html_content: str) -> bool
         
         return True
     except Exception as e:
-        print(f"Error sending email via Gmail: {e}")
+        logger.error(f"Error sending email via Gmail: {e}")
         return False
 
 
@@ -197,7 +200,7 @@ def create_farewell_folder(honoree_first_name: str, event_date=None, event_type:
 
     service = get_drive_service()
     if not service:
-        print("Google Drive not connected")
+        logger.warning("Google Drive not connected")
         return None
 
     try:
@@ -251,7 +254,7 @@ def create_farewell_folder(honoree_first_name: str, event_date=None, event_type:
         }
         
     except Exception as e:
-        print(f"Error creating Drive folder: {e}")
+        logger.error(f"Error creating Drive folder: {e}")
         return None
 
 
