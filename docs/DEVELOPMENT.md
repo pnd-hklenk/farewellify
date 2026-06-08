@@ -236,7 +236,7 @@ CORS(app)
 
 Check:
 - File is under 50MB
-- File type is PDF, JPG, or PNG
+- File type is one of: PDF, JPG, PNG, GIF, HEIC, WebP
 - `uploads/` directory exists (auto-created)
 
 ## Deployment

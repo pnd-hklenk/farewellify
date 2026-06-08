@@ -4,6 +4,45 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-06-08] - Expand allowed file types and improve upload error handling
+
+### Fixed
+
+#### File uploads (`app.py`, `submit.html`)
+- **Root cause:** Only PDF, JPG, and PNG were accepted. iPhone photos (HEIC) and other common formats (GIF, WebP) were silently rejected — the backend skipped them without any error, and the frontend file picker wouldn't even show them.
+- **Fix:** Added GIF, HEIC, and WebP to `ALLOWED_EXTENSIONS` (backend) and all `accept` attributes (frontend).
+- **Explicit errors:** All three upload handlers (`messageFile`, `photos`, legacy `file`) now return a 400 JSON error naming the rejected file and listing allowed types, instead of silently skipping.
+- **Client-side validation:** Added `validateFile()` in `submit.html` that checks both file type and size (50MB) before uploading, with clear `alert()` messages.
+
+#### UI text (`submit.html`)
+- Updated "PDF, JPG, or PNG" → "PDF, JPG, PNG, GIF, HEIC, or WebP" in the handwritten note upload area.
+- Updated "Accepted formats: JPG, PNG" → "Accepted formats: JPG, PNG, GIF, HEIC, WebP" in the photo upload area.
+
+#### Admin dashboard (`admin.html`)
+- Image preview regex now matches `.heic` files (previously only matched jpg/jpeg/png/gif/webp).
+
+### Changed
+
+#### Documentation
+- `docs/API.md` — Fixed wrong endpoint path (`/api/events/{id}/submissions` → `/api/submissions`), added missing `photos` and `existingPhotos` fields, updated allowed file types.
+- `docs/DEVELOPMENT.md` — Updated troubleshooting file type list.
+- `docs/ARCHITECTURE.md` — Allowed types already included HEIC/WebP (no change needed).
+- `.claude/rules/knowledge-supabase.md` — Allowed types already included HEIC/WebP (no change needed).
+
+### Decisions
+- **HEIC excluded from Miro image check** (intentional): `app.py:1363` checks for image extensions to place on Miro boards but omits `.heic` because Miro's API only supports JPEG, PNG, GIF, and WebP. HEIC handwritten notes will still be stored and downloadable — they just won't appear on the Miro collage.
+- **Backend returns 400 with filename**: The error message includes the uploaded filename for clarity. This is safe because the response is JSON consumed by `alert()`, not rendered as HTML.
+
+### Files modified
+- `app.py` — `ALLOWED_EXTENSIONS`, content type map, explicit error returns for all 3 upload handlers
+- `templates/submit.html` — `accept` attributes, UI text, `validateFile()` + `MAX_FILE_SIZE` + `ALLOWED_EXTENSIONS` in JS
+- `templates/admin.html` — image preview regex
+- `docs/API.md` — endpoint path, form fields, allowed types
+- `docs/DEVELOPMENT.md` — troubleshooting file types
+- `docs/CHANGELOG.md` — this entry
+
+---
+
 ## [2026-06-08] - Add proper logging for storage uploads and submissions
 
 ### Changed

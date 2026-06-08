@@ -605,10 +605,11 @@ def create_submission():
         # Legacy: Handle single 'file' upload (for backwards compatibility)
         if 'file' in request.files:
             file = request.files['file']
-            if file and file.filename and allowed_file(file.filename):
+            if file and file.filename:
+                if not allowed_file(file.filename):
+                    return jsonify({'error': f'File type not allowed for "{file.filename}". Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}'}), 400
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 unique_filename = f"{event_id}_{uuid.uuid4().hex[:8]}.{ext}"
-                # Upload to Supabase Storage
                 file_data = file.read()
                 photo_url = upload_to_supabase_storage(file_data, unique_filename)
                 photo_urls.append(photo_url)

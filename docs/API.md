@@ -99,7 +99,7 @@ POST /api/events/{event_id}/send-reminders
 ### Create Submission
 
 ```http
-POST /api/events/{event_id}/submissions
+POST /api/submissions
 Content-Type: multipart/form-data
 ```
 
@@ -110,26 +110,24 @@ Content-Type: multipart/form-data
 | `email` | string | Yes | Team member's email |
 | `name` | string | No | Team member's name |
 | `message` | string | No | Farewell message (typed) |
-| `messageFile` | file | No | Handwritten note - PDF, JPG, or PNG (max 50MB) |
-| `file` | file | No | Photo - PDF, JPG, or PNG (max 50MB) |
+| `messageFile` | file | No | Handwritten note (max 50MB). Allowed types: PDF, JPG, PNG, GIF, HEIC, WebP |
+| `photos` | file[] | No | Up to 15 photos (max 50MB each). Allowed types: JPG, PNG, GIF, HEIC, WebP |
+| `existingPhotos` | string | No | JSON array of existing photo URLs to keep (for edits) |
+| `file` | file | No | *(Legacy)* Single photo upload — use `photos` instead |
 
 **Response:**
 ```json
 {
-  "success": true,
-  "submission": {
-    "id": "uuid",
-    "message": "Good luck Julian!",
-    "file_url": "/uploads/abc123_photo.jpg"
-  }
+  "success": true
 }
 ```
 
 **Error Responses:**
 ```json
-{ "error": "No matching team member found" }  // 400
-{ "error": "File type not allowed" }          // 400
-{ "error": "File too large" }                 // 400
+{ "error": "Missing required fields (eventId or email)" }                  // 400
+{ "error": "File type not allowed for \"photo.heic\". Allowed: ..." }      // 400
+{ "error": "File too large. Maximum size is 50MB." }                       // 413
+{ "error": "Database error: ..." }                                         // 500
 ```
 
 ---
