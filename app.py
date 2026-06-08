@@ -7,6 +7,7 @@ import smtplib
 import zipfile
 import io
 import json
+import logging
 import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -36,6 +37,14 @@ MIRO_API_BASE = 'https://api.miro.com/v2'
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24).hex())
 CORS(app)
+
+# Logging — gunicorn captures root logger; this ensures Flask logs reach it.
+if not app.debug:
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+else:
+    logging.basicConfig(level=logging.INFO)
 
 # File upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -187,7 +196,7 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
     """Send an email via SMTP"""
     
     if not SMTP_USER or not SMTP_PASSWORD:
-        print(f"Email not configured. Would send to {to_email}: {subject}")
+        app.logger.warning(f"Email not configured. Would send to {to_email}: {subject}")
         return False
     
     try:
@@ -207,10 +216,10 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(EMAIL_FROM, to_email, msg.as_string())
         
-        print(f"Email sent to {to_email}")
+        app.logger.info(f"Email sent to {to_email}")
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
+        app.logger.error(f"Error sending email to {to_email}: {e}")
         return False
 
 
@@ -255,7 +264,7 @@ def create_event():
         folder_result = create_farewell_folder(first_name, data.get('deadline'), event_type=event_type)
         if folder_result:
             drive_folder_url = folder_result['folder_url']
-            print(f"Created Drive folder: {drive_folder_url}")
+            app.logger.info(f"Created Drive folder: {drive_folder_url}")
 
     # Create the event
     event_data = {
@@ -640,7 +649,7 @@ def create_submission():
             return jsonify({'success': True})
         except Exception as db_error:
             error_msg = str(db_error)
-            print(f"Database error (with photo_urls): {error_msg}")
+            app.logger.error(f"Database error (with photo_urls): {error_msg}")
             
             # If photo_urls column doesn't exist, try without it
             if 'photo_urls' in error_msg or 'column' in error_msg.lower():
@@ -656,15 +665,13 @@ def create_submission():
                         'warning': 'Photos not saved - photo_urls column missing in database'
                     })
                 except Exception as e2:
-                    print(f"Database error (without photo_urls): {str(e2)}")
+                    app.logger.error(f"Database error (without photo_urls): {str(e2)}")
                     return jsonify({'success': False, 'error': f'Database error: {str(e2)}'}), 500
             
             return jsonify({'success': False, 'error': f'Database error: {error_msg}'}), 500
             
     except Exception as e:
-        print(f"Submission error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        app.logger.error(f"Submission error: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 
