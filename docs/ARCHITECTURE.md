@@ -75,13 +75,13 @@ User fills form → POST /api/events
 Admin clicks "Send Invitations" → POST /api/events/{id}/send-invitations
                                         │
                                         ├─→ Get event details
-                                        ├─→ Get all team members
+                                        ├─→ Get all team members (skip inactive employees)
                                         │
                                         └─→ For each member:
                                               ├─→ Generate personalized link (?email=xxx)
-                                              ├─→ Build HTML email with first name greeting
+                                              ├─→ Build HTML email (custom message if set, else MODE_COPY defaults)
                                               ├─→ Send via SMTP
-                                              └─→ Update invited_at timestamp
+                                              └─→ Update invited_at timestamp (NULL → now)
 ```
 
 ### 3. Submitting a Message

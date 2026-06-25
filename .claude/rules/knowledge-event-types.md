@@ -1,4 +1,4 @@
-# Knowledge: Event Types (Farewell vs. 5-Year Anniversary)
+# Knowledge: event-types.md
 
 > Persistent project knowledge. Loaded automatically by PandaOS via `.claude/rules/`.
 > Do not delete without reading the "Decisions" section below first.
@@ -20,17 +20,19 @@ The mode is stored on each event row in `farewell_events.event_type` (Postgres `
 - **Single source of truth:** `MODE_COPY` dict at the top of `app.py` (after `allowed_file`).
 - Helpers: `get_event_mode(event_data)`, `get_copy(mode)` — both defensive, both fall back to `'farewell'`.
 - Anywhere a user-facing string varies by mode, fetch it from `MODE_COPY`. Do **not** add new hardcoded farewell-specific strings to email/Miro/ZIP code.
+- **Custom invite message override:** The invitation email uses the event's `message` field if set, falling back to `MODE_COPY['invite_intro']` + `MODE_COPY['invite_cta_text']` if empty. The custom message is HTML-escaped and newlines converted to `<br>`. This applies in both `send_invitations` and `add_team_member` (inline invite).
 
 ### API surface
 - `POST /api/events` — accepts `eventType` (camelCase) in JSON body. Defaults to `'farewell'`. Invalid values are coerced to `'farewell'`.
 - `GET /api/events/<event_id>` — returns `event_type` (snake_case, raw from Supabase). Used by submit page.
 - `GET /api/admin/<code>` — returns `eventType` (camelCase, normalised via `get_event_mode`). Used by admin page.
+- `PATCH /api/admin/<code>/update-message` — updates the event's invitation message. Blocked once any team member has `invited_at` set.
 - All other endpoints derive mode from the loaded event row when needed.
 
 ### Templates
 - **`index.html`** — radio toggle is the source of truth before creation. `MODE_UI` JS dict + `applyModeUI()` swap tagline, honoree question, submit-button label, success-modal copy, and the auto-generated message template.
 - **`submit.html`** — `LABELS` JS dict + branch on `event.event_type` (snake_case from API). Swaps page heading, greeting subline, step-1 label, message placeholder, document title.
-- **`admin.html`** — branch on `data.event.eventType` (camelCase from API). Swaps header label and document title.
+- **`admin.html`** — branch on `data.event.eventType` (camelCase from API). Swaps header label and document title. Editable "Invitation Message" textarea (locked after invitations sent) shows and saves the event's `message`.
 
 ### Google Drive
 - `gmail_auth.py` → `create_farewell_folder(first_name, event_date, event_type='farewell')`.
@@ -57,6 +59,9 @@ The mode is stored on each event row in `farewell_events.event_type` (Postgres `
 | 7 | Same Google Drive parent for both modes; folders distinguished by `5Y` prefix | No env var for a separate anniversary parent yet. Single parent + visible marker is the minimum viable change. |
 | 8 | `deadline` column reused: last day (farewell) or anniversary date (anniversary) | Renaming would be breaking. The semantic shift is documented in `docs/DATABASE.md`. |
 | 9 | Email date format `Thursday, 29.01.` is mode-agnostic (no year) | Consistent with prior behaviour. If anniversary-specific year display is wanted later, add it via `MODE_COPY` (e.g. extend the `invite_intro` template to accept a `year` field). |
+| 10 | `invited_at` has no DEFAULT (NULL until email sent) | Original `DEFAULT now()` caused every member to appear "invited" immediately on insertion, disabling the Send Invitations button. Migration `005_fix_invited_at_default`. |
+| 11 | Event `message` is used as invite email body (with MODE_COPY fallback) | Organizers already write a custom message during event creation. Including it in the email avoids a second copy-editing step. If empty, MODE_COPY `invite_intro` + `invite_cta_text` apply. |
+| 12 | Invite message editable only before invitations are sent | Prevents confusing divergence between already-sent and future emails. Enforced server-side in `update-message` endpoint and client-side in `admin.html`. |
 
 ---
 
@@ -80,3 +85,4 @@ The mode is stored on each event row in `farewell_events.event_type` (Postgres `
 ## Schema migration history
 
 - `add_event_type_to_farewell_events` (2026-05-11) — added `event_type text NOT NULL DEFAULT 'farewell'` with `CHECK (event_type IN ('farewell','anniversary'))`.
+- `fix_invited_at_default` (2026-06-25) — `ALTER TABLE team_members ALTER COLUMN invited_at DROP DEFAULT`. Removed `DEFAULT now()` that caused all new members to appear as already invited.

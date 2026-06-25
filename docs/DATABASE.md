@@ -24,7 +24,7 @@ Main table storing each event (farewell card or 5-year anniversary book).
 | `organizer_name` | text | Who's organizing |
 | `organizer_email` | text | Organizer's email |
 | `deadline` | timestamp | Last day (farewell) or anniversary date |
-| `message` | text | Internal message template (not sent verbatim) |
+| `message` | text | Invitation message — included in the invitation email body. Editable on the admin page before invitations are sent. |
 | `access_code` | text | Unique code for admin URL |
 | `google_drive_folder_url` | text | Link to Google Drive folder (optional) |
 | `miro_board_url` | text | Link to Miro collage board (optional) |
@@ -46,7 +46,7 @@ People invited to submit messages.
 | `event_id` | uuid (FK) | References farewell_events.id |
 | `name` | text | Team member's name |
 | `email` | text | Team member's email |
-| `invited_at` | timestamp | When invitation email was sent |
+| `invited_at` | timestamp | When invitation email was sent (NULL until sent — no DEFAULT) |
 | `reminder_sent_at` | timestamp | When last reminder was sent |
 | `created_at` | timestamp | Auto-set on creation |
 
@@ -144,7 +144,7 @@ CREATE TABLE team_members (
     event_id UUID REFERENCES farewell_events(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
-    invited_at TIMESTAMP WITH TIME ZONE,
+    invited_at TIMESTAMP WITH TIME ZONE,  -- no DEFAULT; set only when invite email is sent
     reminder_sent_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -239,6 +239,15 @@ CREATE POLICY "Allow public read from uploads bucket"
 CREATE POLICY "Allow public update in uploads bucket"
   ON storage.objects FOR UPDATE TO public
   USING (bucket_id = 'uploads');
+```
+
+### Fix invited_at default (migration 005)
+The original schema had `invited_at TIMESTAMP WITH TIME ZONE DEFAULT now()` on `team_members`,
+which meant every newly added member appeared as "already invited" before any email was sent.
+This broke the "Send Invitations" button (always disabled) and caused reminder emails
+to go out instead of invitations.
+```sql
+ALTER TABLE team_members ALTER COLUMN invited_at DROP DEFAULT;
 ```
 
 ## Queries

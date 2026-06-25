@@ -104,6 +104,31 @@
             </div>
         </div>
 
+        <!-- Invitation Message (editable before invitations are sent) -->
+        <div id="inviteMessageSection" class="hidden mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-pandata-red">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold text-pandata-charcoal">
+                        <i class="fas fa-envelope-open-text mr-2 text-pandata-red"></i>
+                        Invitation Message
+                    </h2>
+                    <span id="inviteMessageStatus" class="text-xs text-pandata-gray font-mono"></span>
+                </div>
+                <p id="inviteMessageHint" class="text-sm text-pandata-gray mb-3">
+                    This text will be included in the invitation email. You can edit it before sending invitations.
+                </p>
+                <textarea id="inviteMessageText" rows="4"
+                    class="w-full px-4 py-3 border border-pandata-gray-light rounded-lg focus:ring-2 focus:ring-pandata-red focus:border-transparent text-pandata-charcoal text-sm resize-y"
+                    placeholder="Write your invitation message here..."></textarea>
+                <div id="inviteMessageActions" class="flex justify-end mt-3">
+                    <button onclick="saveInviteMessage()" id="saveMessageBtn"
+                        class="px-4 py-2 bg-pandata-red text-white rounded-lg hover:bg-pandata-red-dark transition-colors text-sm font-medium">
+                        <i class="fas fa-save mr-1"></i> Save
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <button onclick="sendInvitations()" id="sendInvitationsBtn"
@@ -292,6 +317,29 @@
                 sendInvBtn.title = '';
             }
 
+            // Invitation message section
+            const inviteMsgSection = document.getElementById('inviteMessageSection');
+            const inviteMsgText = document.getElementById('inviteMessageText');
+            const inviteMsgActions = document.getElementById('inviteMessageActions');
+            const inviteMsgHint = document.getElementById('inviteMessageHint');
+            const inviteMsgStatus = document.getElementById('inviteMessageStatus');
+            const invitesSent = data.stats.invited > 0 || data.stats.submitted > 0;
+            inviteMsgSection.classList.remove('hidden');
+            inviteMsgText.value = data.event.message || '';
+            if (invitesSent) {
+                inviteMsgText.disabled = true;
+                inviteMsgText.classList.add('bg-gray-50', 'text-pandata-gray');
+                inviteMsgActions.classList.add('hidden');
+                inviteMsgHint.textContent = 'Invitations have been sent. The message can no longer be edited.';
+                inviteMsgStatus.textContent = 'Locked';
+            } else {
+                inviteMsgText.disabled = false;
+                inviteMsgText.classList.remove('bg-gray-50', 'text-pandata-gray');
+                inviteMsgActions.classList.remove('hidden');
+                inviteMsgHint.textContent = 'This text will be included in the invitation email. You can edit it before sending invitations.';
+                inviteMsgStatus.textContent = 'Editable';
+            }
+
             // Disable "Remind All Pending" button if no invites have been sent yet
             const remindBtn = document.getElementById('sendRemindersBtn');
             const anyoneInvited = data.stats.invited > 0 || data.stats.submitted > 0;
@@ -456,6 +504,32 @@
             setTimeout(() => notification.classList.add('hidden'), 3000);
         }
 
+        async function saveInviteMessage() {
+            const btn = document.getElementById('saveMessageBtn');
+            const message = document.getElementById('inviteMessageText').value;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+
+            try {
+                const response = await fetch(`/api/admin/${accessCode}/update-message`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('Message saved!');
+                } else {
+                    showNotification(result.error || 'Error saving message', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save mr-1"></i> Save';
+        }
+
         async function sendInvitations() {
             if (!eventData) return;
             
@@ -472,6 +546,7 @@
                 if (result.success) {
                     const skipped = result.skippedInactive ? ` (${result.skippedInactive} inactive skipped)` : '';
                     showNotification(`Sent ${result.sentCount} invitation(s)!${skipped}`);
+                    loadData();
                 } else {
                     showNotification(result.error || 'Error sending invitations', 'error');
                 }

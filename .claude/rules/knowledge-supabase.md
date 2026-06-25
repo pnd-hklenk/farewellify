@@ -1,4 +1,4 @@
-# Knowledge: Supabase Configuration & Storage
+# Knowledge: supabase.md
 
 > Persistent project knowledge. Loaded automatically by PandaOS via `.claude/rules/`.
 

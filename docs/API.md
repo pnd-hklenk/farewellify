@@ -53,6 +53,39 @@ Content-Type: application/json
 
 ---
 
+### Update Invitation Message
+
+```http
+PATCH /api/admin/{access_code}/update-message
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "message": "Hey everyone, as Julian will be leaving next week..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+**Error Responses:**
+```json
+{ "error": "Cannot edit message after invitations have been sent" }  // 400
+{ "error": "Event not found" }                                       // 404
+```
+
+**Notes:**
+- Only allowed before invitations have been sent (checks `invited_at` on all team members)
+- The message is included in the invitation email body. If empty, a default mode-specific intro from `MODE_COPY` is used instead.
+
+---
+
 ### Send Invitations
 
 ```http
@@ -64,14 +97,16 @@ POST /api/events/{event_id}/send-invitations
 {
   "success": true,
   "sentCount": 20,
-  "totalMembers": 22
+  "totalMembers": 22,
+  "skippedInactive": 2
 }
 ```
 
 **Notes:**
-- Sends personalized emails to all team members
+- Sends personalized emails to all team members (skips inactive employees)
+- If the event has a custom `message`, it is used as the email body; otherwise `MODE_COPY` defaults apply
 - Each email contains a unique link: `?email={member_email}`
-- Updates `invited_at` timestamp for each member
+- Updates `invited_at` timestamp for each successfully sent member
 
 ---
 

@@ -7,6 +7,7 @@ import smtplib
 import zipfile
 import io
 import json
+import html
 import logging
 import requests
 from email.mime.text import MIMEText
@@ -316,6 +317,29 @@ def create_event():
     })
 
 
+@app.route('/api/admin/<access_code>/update-message', methods=['PATCH'])
+def update_event_message(access_code):
+    """Update the event's invitation message (only before invitations are sent)"""
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+
+    event = supabase.table('farewell_events').select('id').eq('access_code', access_code).limit(1).execute()
+    if not event.data:
+        return jsonify({'error': 'Event not found'}), 404
+
+    event_id = event.data[0]['id']
+
+    members = supabase.table('team_members').select('invited_at').eq('event_id', event_id).execute()
+    if any(m.get('invited_at') for m in members.data):
+        return jsonify({'error': 'Cannot edit message after invitations have been sent'}), 400
+
+    data = request.json
+    message = data.get('message', '').strip()
+
+    supabase.table('farewell_events').update({'message': message}).eq('id', event_id).execute()
+    return jsonify({'success': True})
+
+
 @app.route('/api/events/<event_id>/send-invitations', methods=['POST'])
 def send_invitations(event_id):
     """Send invitation emails to all team members"""
@@ -358,8 +382,14 @@ def send_invitations(event_id):
 
         subject = copy['invite_subject'].format(name=honoree_first_name)
         heading = copy['invite_heading'].format(name=honoree_first_name)
-        intro = copy['invite_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
-        cta_text = copy['invite_cta_text']
+        custom_message = event_data.get('message', '').strip()
+        if custom_message:
+            safe_message = html.escape(custom_message).replace('\n', '<br>')
+            body_html = f'<p style="color: #434343; margin: 0 0 25px 0;">{safe_message}</p>'
+        else:
+            intro = copy['invite_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
+            cta_text = copy['invite_cta_text']
+            body_html = f'<p style="color: #434343; margin: 0 0 15px 0;">{intro}</p><p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>'
         button_label = copy['invite_button']
         html_content = f"""
         <html>
@@ -372,8 +402,7 @@ def send_invitations(event_id):
                                 <td align="left" style="padding: 30px;">
                                     <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">{heading}</h2>
                                     <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
-                                    <p style="color: #434343; margin: 0 0 15px 0;">{intro}</p>
-                                    <p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>
+                                    {body_html}
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td align="left" style="padding: 10px 0 25px 0;">
@@ -398,9 +427,8 @@ def send_invitations(event_id):
 
         if send_email(member['email'], subject, html_content):
             sent_count += 1
-            # Update invited_at timestamp
             supabase.table('team_members').update({'invited_at': datetime.now(timezone.utc).isoformat()}).eq('id', member['id']).execute()
-    
+
     skipped = sum(1 for m in members.data if m['email'].lower() in inactive_emails)
     return jsonify({
         'success': True,
@@ -879,8 +907,14 @@ def add_team_member(access_code):
             copy = get_copy(mode)
             subject = copy['invite_subject'].format(name=honoree_first_name)
             heading = copy['invite_heading'].format(name=honoree_first_name)
-            intro = copy['invite_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
-            cta_text = copy['invite_cta_text']
+            custom_message = event_data.get('message', '').strip()
+            if custom_message:
+                safe_message = html.escape(custom_message).replace('\n', '<br>')
+                body_html = f'<p style="color: #434343; margin: 0 0 25px 0;">{safe_message}</p>'
+            else:
+                intro = copy['invite_intro'].format(name=honoree_first_name, deadline=formatted_deadline)
+                cta_text = copy['invite_cta_text']
+                body_html = f'<p style="color: #434343; margin: 0 0 15px 0;">{intro}</p><p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>'
             button_label = copy['invite_button']
             html_content = f"""
         <html>
@@ -893,8 +927,7 @@ def add_team_member(access_code):
                                 <td align="left" style="padding: 30px;">
                                     <h2 style="color: #434343; margin-top: 0; margin-bottom: 20px;">{heading}</h2>
                                     <p style="color: #434343; margin: 0 0 15px 0;">Hi {member_first_name},</p>
-                                    <p style="color: #434343; margin: 0 0 15px 0;">{intro}</p>
-                                    <p style="color: #434343; margin: 0 0 25px 0;">{cta_text}</p>
+                                    {body_html}
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
                                             <td align="left" style="padding: 10px 0 25px 0;">

@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [2026-06-25] - Fix invitation emails never sent + editable invite message
+
+### Fixed
+
+#### Invitation email bug (`team_members.invited_at` schema)
+- **Root cause:** The `invited_at` column had `DEFAULT now()`, so every team member was marked as "invited" the moment they were inserted — before any email was sent.
+- **Effect:** The "Send Invitations" button on the admin page was always disabled (showed 0 "not invited"). Organizers could only click "Remind All Pending", which sent reminder-style emails (different subject/body) instead of the original invitation.
+- **Fix:** Migration `005_fix_invited_at_default` drops the DEFAULT. New members start with `invited_at = NULL`; it's only set when `send_email()` succeeds.
+
+#### Admin page reloads after sending invitations
+- `sendInvitations()` now calls `loadData()` on success so the stats, button states, and message field update immediately.
+
+### Added
+
+#### Editable invitation message (`admin.html`, `app.py`)
+- New "Invitation Message" section on the admin page between stats and action buttons.
+- Textarea shows the event's `message` field; editable while no invitations have been sent, then locked (disabled + hint text).
+- "Save" button calls new `PATCH /api/admin/{access_code}/update-message` endpoint.
+- Endpoint validates that no team member has `invited_at` set before allowing the update.
+
+#### Custom message in invitation emails
+- Both `send_invitations` and `add_team_member` (inline invite) now use the event's `message` as the email body when set, falling back to `MODE_COPY` defaults when empty.
+- Custom message is HTML-escaped (`html.escape`) and newlines converted to `<br>` for safe email rendering.
+
+### Decisions
+- **Reuse `farewell_events.message` rather than a new column** — the field already exists and is filled during event creation. No schema change needed for the custom message feature.
+- **Lock editing after any invitation sent** — prevents divergence between emails already sent and future ones. Server-side enforcement via `invited_at` check.
+- **HTML-escape custom messages** — even though the organizer is a trusted user, escaping prevents accidental HTML breakage (e.g. `<` or `&` in the message).
+
+### Files modified
+- `app.py` — `import html`, new `update_event_message` endpoint, custom message in both invite email builders
+- `templates/admin.html` — invite message UI section, `saveInviteMessage()` JS, `loadData()` call after send
+- `supabase/migrations/005_fix_invited_at_default.sql` — `ALTER TABLE team_members ALTER COLUMN invited_at DROP DEFAULT`
+- `docs/API.md` — new endpoint docs, updated send-invitations notes
+- `docs/DATABASE.md` — updated `message` and `invited_at` descriptions, added migration docs
+- `.claude/rules/knowledge-event-types.md` — updated API surface, backend copy, decisions, migration history
+- `docs/CHANGELOG.md` — this entry
+
+---
+
 ## [2026-06-08] - Expand allowed file types and improve upload error handling
 
 ### Fixed
